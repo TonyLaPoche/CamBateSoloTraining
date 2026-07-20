@@ -32,8 +32,8 @@ export function ControlBar({
   onReset,
 }: Props) {
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 p-4 md:p-6">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 rounded-2xl border border-bm-bg3 bg-black/60 p-3 backdrop-blur-md">
+    <div className="absolute inset-x-0 bottom-0 z-20 p-2 md:p-3">
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-bm-bg3 bg-black/60 p-2 backdrop-blur-md">
         {!camReady ? (
           <button
             type="button"

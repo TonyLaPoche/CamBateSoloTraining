@@ -267,17 +267,17 @@ export default function App() {
   const face = vision.faceState;
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
+      <header className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 md:px-6 md:py-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-bm-brand">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-bm-brand">
             Batemates · local
           </p>
-          <h1 className="font-display text-lg text-white md:text-xl">
+          <h1 className="font-display text-base text-white md:text-lg">
             CAMBATE <span className="bm-gradient-text">SOLO</span>
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {camera.ready && (
             <OverlayToggles
               showHands={showHands}
@@ -288,21 +288,19 @@ export default function App() {
               onToggleHud={() => setShowHud((v) => !v)}
             />
           )}
-          <div className="text-right text-xs text-bm-muted">
+          <div className="hidden text-right text-[11px] text-bm-muted sm:block">
             <p>
-              Best score{" "}
+              Best{" "}
               <span className="text-white">{lifetime.bestScore}</span>
-            </p>
-            <p>
-              Best combo{" "}
+              {" · "}
               <span className="text-bm-brand">×{lifetime.bestCombo}</span>
             </p>
           </div>
         </div>
       </header>
 
-      <main className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-6 md:px-8">
-        <section className="relative min-h-[62vh] flex-1 overflow-hidden rounded-3xl border border-bm-bg3 bg-bm-bg1 shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+      <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-2 pb-2 md:px-4">
+        <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-bm-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
           {!camera.ready && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-bm-bg1 p-8 text-center">
               <div className="h-1 w-24 rounded-full bm-gradient-bg" />
@@ -328,13 +326,13 @@ export default function App() {
 
           <video
             ref={videoRef}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain bg-black"
             playsInline
             muted
           />
           <canvas
             ref={overlayRef}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
           />
 
           {camera.ready && (
@@ -353,13 +351,18 @@ export default function App() {
               cumActive={cumActive}
               handCount={vision.handCount}
               face={face}
+              resolution={
+                camera.width && camera.height
+                  ? `${camera.width}×${camera.height}`
+                  : null
+              }
             />
           )}
 
           <MilestoneToast message={toast} />
 
           {recorder.recording && (
-            <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full bg-bm-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141]">
+            <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-bm-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141] md:top-16">
               <span className="live-dot h-2 w-2 rounded-full bg-white" />
               {recorder.paused ? "PAUSE" : "REC"}
             </div>
@@ -382,11 +385,6 @@ export default function App() {
             onReset={handleReset}
           />
         </section>
-
-        <p className="mt-4 text-center text-xs text-bm-muted">
-          Jaune = fap · violet = vape · rouge = poppers · pinch / dwell sur le
-          HUD cam
-        </p>
       </main>
     </div>
   );

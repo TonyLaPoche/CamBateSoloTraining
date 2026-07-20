@@ -11,6 +11,7 @@ type Props = {
   cumActive: boolean;
   handCount: number;
   face: VisionFaceState;
+  resolution: string | null;
 };
 
 export function ScoreHud({
@@ -24,6 +25,7 @@ export function ScoreHud({
   cumActive,
   handCount,
   face,
+  resolution,
 }: Props) {
   const eyesLabel =
     face.leftEyeOpen && face.rightEyeOpen
@@ -46,7 +48,7 @@ export function ScoreHud({
         : null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-4 md:p-6">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-4 pt-20 md:p-6 md:pt-24">
       <div
         className={`rounded-2xl border border-bm-bg3 bg-black/55 px-4 py-3 backdrop-blur-md ${flash ? "pump-flash" : ""}`}
       >
@@ -91,6 +93,7 @@ export function ScoreHud({
       <div className="flex flex-col items-end gap-2">
         <div className="rounded-full border border-bm-bg3 bg-black/55 px-3 py-1.5 text-xs font-medium text-bm-muted backdrop-blur-md">
           {trackingLabel}
+          {resolution ? ` · ${resolution}` : ""}
         </div>
         <div className="rounded-2xl border border-bm-bg3 bg-black/55 px-3 py-2 text-right text-[11px] leading-relaxed text-bm-muted backdrop-blur-md">
           <p>

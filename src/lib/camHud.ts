@@ -25,25 +25,27 @@ export type HudRuntimeState = {
   cumActive: boolean;
 };
 
-/** Boutons sur les bords — coords vidéo brutes (avant miroir CSS) */
+/** Boutons en haut de la cam — 3 slots */
 export function layoutHudButtons(state: HudRuntimeState): HudButton[] {
+  const y = 0.035;
+  const h = 0.07;
   const buttons: HudButton[] = [
     {
       id: "toggle-fap",
       label: state.fapping ? "PAUSE FAP" : "START FAP",
-      x: 0.04,
-      y: 0.78,
-      w: 0.2,
-      h: 0.08,
+      x: 0.03,
+      y,
+      w: 0.28,
+      h,
       accent: state.fapping ? "#AF9EFF" : "#FBFF4D",
     },
     {
       id: "gonna-cum",
       label: state.cumActive ? "EDGE…" : "I'M GONNA CUM",
-      x: 0.38,
-      y: 0.78,
-      w: 0.24,
-      h: 0.08,
+      x: 0.36,
+      y,
+      w: 0.28,
+      h,
       accent: "#FF0107",
     },
   ];
@@ -52,29 +54,29 @@ export function layoutHudButtons(state: HudRuntimeState): HudButton[] {
     buttons.push({
       id: "rec-start",
       label: "REC START",
-      x: 0.76,
-      y: 0.78,
-      w: 0.2,
-      h: 0.08,
+      x: 0.69,
+      y,
+      w: 0.28,
+      h,
       accent: "#F41141",
     });
   } else {
     buttons.push({
       id: "rec-pause",
-      label: state.paused ? "REC RESUME" : "REC PAUSE",
-      x: 0.64,
-      y: 0.78,
-      w: 0.16,
-      h: 0.08,
+      label: state.paused ? "RESUME" : "PAUSE",
+      x: 0.69,
+      y,
+      w: 0.13,
+      h,
       accent: "#FBFF4D",
     });
     buttons.push({
       id: "rec-stop",
-      label: "REC STOP",
-      x: 0.82,
-      y: 0.78,
-      w: 0.14,
-      h: 0.08,
+      label: "STOP",
+      x: 0.84,
+      y,
+      w: 0.13,
+      h,
       accent: "#F41141",
     });
   }
