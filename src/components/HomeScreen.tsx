@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { MobilePermissionsCard } from "@/components/MobilePermissionsCard";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { SavedSessionMeta } from "@/lib/sessionLibrary";
 import {
   formatDuration,
@@ -28,6 +29,7 @@ export function HomeScreen({
   onDelete,
   onDownload,
 }: Props) {
+  const { t } = useI18n();
   const [pseudo, setPseudo] = useState(initialPseudo);
   const normalized = useMemo(() => normalizePseudo(pseudo), [pseudo]);
   const valid = isValidPseudo(normalized);
@@ -37,17 +39,16 @@ export function HomeScreen({
       <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-4 sm:p-6 md:p-8">
         <div className="h-1 w-16 rounded-full cbs-gradient-bg sm:w-20" />
         <h2 className="mt-3 font-display text-xl text-white sm:mt-4 sm:text-2xl md:text-4xl">
-          CAMBATE SOLO
+          {t("home.title")}
         </h2>
         <p className="mt-2 max-w-lg text-xs leading-relaxed text-cbs-muted sm:text-sm">
-          Choisis un pseudo (4–5 lettres), puis entre dans l’arène. Tes scores
-          seront sauvegardés au format{" "}
+          {t("home.intro")}{" "}
           <span className="break-all text-cbs-primary">AABB-20-07-2026-22:39</span>.
         </p>
 
         <label className="mt-5 block sm:mt-6">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cbs-accent">
-            Pseudo
+            {t("home.pseudo")}
           </span>
           <input
             type="text"
@@ -62,20 +63,23 @@ export function HomeScreen({
             className="mt-2 w-full max-w-xs rounded-xl border border-cbs-bg3 bg-black/50 px-4 py-3 font-display text-2xl tracking-[0.2em] text-cbs-primary outline-none placeholder:text-cbs-muted focus:border-cbs-primary"
           />
           <span className="mt-2 block text-xs text-cbs-muted">
-            {normalized.length}/5 · lettres uniquement
-            {!valid && normalized.length > 0 ? " · min. 4 lettres" : ""}
+            {normalized.length}/5 · {t("home.pseudoHint")}
+            {!valid && normalized.length > 0 ? ` · ${t("home.pseudoMin")}` : ""}
           </span>
         </label>
 
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cbs-muted">
           <span>
-            Best score <strong className="text-white">{bestScore}</strong>
+            {t("home.bestScore")}{" "}
+            <strong className="text-white">{bestScore}</strong>
           </span>
           <span>
-            Best combo <strong className="text-cbs-accent">×{bestCombo}</strong>
+            {t("home.bestCombo")}{" "}
+            <strong className="text-cbs-accent">×{bestCombo}</strong>
           </span>
           <span>
-            Sessions <strong className="text-white">{sessions.length}</strong>
+            {t("home.sessions")}{" "}
+            <strong className="text-white">{sessions.length}</strong>
           </span>
         </div>
         <button
@@ -84,7 +88,7 @@ export function HomeScreen({
           disabled={!valid}
           onClick={() => onEnterArena(normalized)}
         >
-          Entrer dans l’arène
+          {t("home.enterArena")}
         </button>
       </section>
 
@@ -92,12 +96,11 @@ export function HomeScreen({
 
       <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-3 sm:p-4 md:p-6">
         <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cbs-accent sm:text-xs">
-          Sessions enregistrées
+          {t("home.sessionsTitle")}
         </h3>
         {sessions.length === 0 ? (
           <p className="mt-3 text-xs text-cbs-muted sm:mt-4 sm:text-sm">
-            Aucune session pour l’instant. Rec pendant un fap, puis Exit —
-            le clip apparaîtra ici.
+            {t("home.sessionsEmpty")}
           </p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2 sm:mt-4">
@@ -125,14 +128,14 @@ export function HomeScreen({
                         className="cbs-btn cbs-btn-primary !min-h-9 !px-3 !py-1.5 !text-xs"
                         onClick={() => onPlay(s.id)}
                       >
-                        Play
+                        {t("home.play")}
                       </button>
                       <button
                         type="button"
                         className="cbs-btn cbs-btn-ghost !min-h-9 !px-3 !py-1.5 !text-xs"
                         onClick={() => onDownload(s.id)}
                       >
-                        DL
+                        {t("home.download")}
                       </button>
                     </>
                   )}
@@ -141,7 +144,7 @@ export function HomeScreen({
                     className="cbs-btn cbs-btn-ghost !min-h-9 !px-3 !py-1.5 !text-xs"
                     onClick={() => onDelete(s.id)}
                   >
-                    Suppr
+                    {t("home.delete")}
                   </button>
                 </div>
               </li>

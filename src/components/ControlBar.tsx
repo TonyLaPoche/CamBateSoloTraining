@@ -1,3 +1,5 @@
+import { useI18n } from "@/i18n/I18nProvider";
+
 type Props = {
   camReady: boolean;
   fapping: boolean;
@@ -13,7 +15,6 @@ type Props = {
   onGonnaCum: () => void;
   onDownload: () => void;
   onReset: () => void;
-  /** overlay = flottant sur cam · dock = barre fixe hors flux */
   variant?: "overlay" | "dock";
 };
 
@@ -34,6 +35,7 @@ export function ControlBar({
   onReset,
   variant = "overlay",
 }: Props) {
+  const { t } = useI18n();
   const dock = variant === "dock";
 
   return (
@@ -51,7 +53,7 @@ export function ControlBar({
             className="cbs-btn cbs-btn-primary w-full sm:w-auto"
             onClick={onStartCam}
           >
-            Activer la caméra
+            {t("controls.enableCam")}
           </button>
         ) : (
           <>
@@ -60,7 +62,7 @@ export function ControlBar({
               className={`cbs-btn ${fapping ? "cbs-btn-ghost" : "cbs-btn-primary"}`}
               onClick={onToggleFap}
             >
-              {fapping ? "Pause" : "Start"}
+              {fapping ? t("controls.pause") : t("controls.start")}
             </button>
 
             {!recording ? (
@@ -69,7 +71,7 @@ export function ControlBar({
                 className="cbs-btn cbs-btn-danger"
                 onClick={onRecStart}
               >
-                Rec
+                {t("controls.rec")}
               </button>
             ) : (
               <>
@@ -78,7 +80,7 @@ export function ControlBar({
                   className="cbs-btn cbs-btn-ghost"
                   onClick={onRecPause}
                 >
-                  {recPaused ? "Resume" : "Pause"}
+                  {recPaused ? t("controls.resume") : t("controls.pause")}
                 </button>
                 <button
                   type="button"
@@ -86,7 +88,7 @@ export function ControlBar({
                   onClick={onRecStop}
                 >
                   <span className="live-dot inline-block h-2 w-2 rounded-full bg-white" />
-                  Stop
+                  {t("controls.stop")}
                 </button>
               </>
             )}
@@ -96,7 +98,7 @@ export function ControlBar({
               className={`cbs-btn ${cumActive ? "cbs-btn-danger" : "cbs-btn-ghost"}`}
               onClick={onGonnaCum}
             >
-              {cumActive ? "Edge…" : "Cum ×3"}
+              {cumActive ? t("controls.edge") : t("controls.cum")}
             </button>
 
             {hasClip && (
@@ -105,7 +107,7 @@ export function ControlBar({
                 className="cbs-btn cbs-btn-ghost"
                 onClick={onDownload}
               >
-                DL
+                {t("controls.download")}
               </button>
             )}
             <button
@@ -113,7 +115,7 @@ export function ControlBar({
               className="cbs-btn cbs-btn-ghost"
               onClick={onReset}
             >
-              Reset
+              {t("controls.reset")}
             </button>
           </>
         )}

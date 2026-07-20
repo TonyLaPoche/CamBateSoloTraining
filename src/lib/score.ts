@@ -47,9 +47,9 @@ export type BonusBreakdown = {
   eyesMult: number;
   mouthMult: number;
   total: number;
-  handLabel: string;
-  eyesLabel: string;
-  mouthLabel: string;
+  handKey: "handJoined" | "handSeparated" | "handOne" | "handNone";
+  eyesKey: "eyesClosed" | "eyesOne" | "eyesOpen";
+  mouthKey: "mouthOpen" | "mouthClosed";
 };
 
 /**
@@ -69,31 +69,31 @@ export function computeBonuses(input: BonusInput): BonusBreakdown {
 
   const mouthMult = input.mouthOpen ? 2 : 1;
 
-  const handLabel =
+  const handKey =
     input.handCount >= 2 && input.handsJoined
-      ? "2 mains jointes"
+      ? "handJoined"
       : input.handCount >= 2
-        ? "2 mains (séparées)"
+        ? "handSeparated"
         : input.handCount === 1
-          ? "1 main"
-          : "0 main";
+          ? "handOne"
+          : "handNone";
 
-  const eyesLabel = bothClosed
-    ? "Yeux fermés"
+  const eyesKey = bothClosed
+    ? "eyesClosed"
     : oneClosed
-      ? "1 œil fermé"
-      : "Yeux ouverts";
+      ? "eyesOne"
+      : "eyesOpen";
 
-  const mouthLabel = input.mouthOpen ? "Bouche ouverte" : "Bouche fermée";
+  const mouthKey = input.mouthOpen ? "mouthOpen" : "mouthClosed";
 
   return {
     handMult,
     eyesMult,
     mouthMult,
     total: handMult * eyesMult * mouthMult,
-    handLabel,
-    eyesLabel,
-    mouthLabel,
+    handKey,
+    eyesKey,
+    mouthKey,
   };
 }
 

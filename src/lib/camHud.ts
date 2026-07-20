@@ -28,6 +28,21 @@ export type HudRuntimeState = {
 export type HudLayoutOpts = {
   /** Portrait / étroit : boutons plus hauts, labels courts */
   compact?: boolean;
+  labels?: {
+    startFap: string;
+    pauseFap: string;
+    start: string;
+    pause: string;
+    cum: string;
+    cumShort: string;
+    edge: string;
+    edgeShort: string;
+    recStart: string;
+    rec: string;
+    resume: string;
+    pauseRec: string;
+    stop: string;
+  };
 };
 
 /** Boutons en haut de la cam — 3 slots */
@@ -36,6 +51,7 @@ export function layoutHudButtons(
   opts: HudLayoutOpts = {},
 ): HudButton[] {
   const compact = opts.compact ?? false;
+  const L = opts.labels;
   const y = compact ? 0.02 : 0.028;
   const h = compact ? 0.085 : 0.09;
   const gap = 0.02;
@@ -45,18 +61,18 @@ export function layoutHudButtons(
 
   const fapLabel = compact
     ? state.fapping
-      ? "PAUSE"
-      : "START"
+      ? (L?.pause ?? "PAUSE")
+      : (L?.start ?? "START")
     : state.fapping
-      ? "PAUSE FAP"
-      : "START FAP";
+      ? (L?.pauseFap ?? "PAUSE FAP")
+      : (L?.startFap ?? "START FAP");
   const cumLabel = compact
     ? state.cumActive
-      ? "EDGE"
-      : "CUM ×3"
+      ? (L?.edgeShort ?? "EDGE")
+      : (L?.cumShort ?? "CUM ×3")
     : state.cumActive
-      ? "EDGE…"
-      : "I'M GONNA CUM";
+      ? (L?.edge ?? "EDGE…")
+      : (L?.cum ?? "I'M GONNA CUM");
 
   const buttons: HudButton[] = [
     {
@@ -84,7 +100,7 @@ export function layoutHudButtons(
   if (!state.recording) {
     buttons.push({
       id: "rec-start",
-      label: compact ? "REC" : "REC START",
+      label: compact ? (L?.rec ?? "REC") : (L?.recStart ?? "REC START"),
       x: recX,
       y,
       w: w3,
@@ -95,7 +111,13 @@ export function layoutHudButtons(
     const half = (w3 - gap) / 2;
     buttons.push({
       id: "rec-pause",
-      label: state.paused ? (compact ? "▶" : "RESUME") : compact ? "❚❚" : "PAUSE",
+      label: state.paused
+        ? compact
+          ? "▶"
+          : (L?.resume ?? "RESUME")
+        : compact
+          ? "❚❚"
+          : (L?.pauseRec ?? "PAUSE"),
       x: recX,
       y,
       w: half,
@@ -104,7 +126,7 @@ export function layoutHudButtons(
     });
     buttons.push({
       id: "rec-stop",
-      label: "STOP",
+      label: L?.stop ?? "STOP",
       x: recX + half + gap,
       y,
       w: half,

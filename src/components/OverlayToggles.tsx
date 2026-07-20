@@ -1,3 +1,5 @@
+import { useI18n } from "@/i18n/I18nProvider";
+
 type Props = {
   showHands: boolean;
   showFace: boolean;
@@ -44,24 +46,25 @@ export function OverlayToggles({
   onToggleFace,
   onToggleHud,
 }: Props) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-1 sm:gap-2">
       <Chip
         active={showHands}
-        short="M"
-        label="Mains"
+        short={t("overlay.handsShort")}
+        label={t("overlay.hands")}
         onClick={onToggleHands}
       />
       <Chip
         active={showFace}
-        short="V"
-        label="Visage"
+        short={t("overlay.faceShort")}
+        label={t("overlay.face")}
         onClick={onToggleFace}
       />
       <Chip
         active={showHud}
-        short="H"
-        label="HUD cam"
+        short={t("overlay.hudShort")}
+        label={t("overlay.hud")}
         onClick={onToggleHud}
       />
     </div>

@@ -5,11 +5,13 @@ import { ExitArenaButton } from "@/components/ExitArenaButton";
 import { HomeScreen } from "@/components/HomeScreen";
 import { MilestoneToast } from "@/components/MilestoneToast";
 import { OverlayToggles } from "@/components/OverlayToggles";
+import { LangToggle } from "@/components/LangToggle";
 import { PwaInstallHint } from "@/components/PwaInstallHint";
 import { ScoreHud } from "@/components/ScoreHud";
 import { useCamera } from "@/hooks/useCamera";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
 import { useVisionSession } from "@/hooks/useVisionSession";
+import { useI18n } from "@/i18n/I18nProvider";
 import type { HudAction } from "@/lib/camHud";
 import type { FaceHandAction } from "@/lib/faceFeatures";
 import {
@@ -55,6 +57,7 @@ function trackingDotClass(
 }
 
 export default function App() {
+  const { t, messages } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const [screen, setScreen] = useState<Screen>("home");
@@ -181,13 +184,13 @@ export default function App() {
     setPumps((p) => {
       const next = p + 1;
       const mile = milestoneFor(next);
-      if (mile) showToast(`${mile} FAPS`);
+      if (mile) showToast(t("toast.fapsMilestone", { n: mile }));
       return next;
     });
     setScore((s) => s + pts);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 280);
-  }, [cumActive, showToast]);
+  }, [cumActive, showToast, t]);
 
   const onFaceActionTick = useCallback(
     (action: FaceHandAction) => {
@@ -200,11 +203,16 @@ export default function App() {
 
   const handleStartFap = useCallback(async () => {
     if (fappingRef.current || countdownBusyRef.current) return;
-    const ok = await runCenterCountdown(["3", "2", "1", "LET'S FAP!"]);
+    const ok = await runCenterCountdown([
+      "3",
+      "2",
+      "1",
+      t("toast.letsFap"),
+    ]);
     if (!ok) return;
     setFapping(true);
-    showToast("FAPPING");
-  }, [runCenterCountdown, showToast]);
+    showToast(t("toast.fapping"));
+  }, [runCenterCountdown, showToast, t]);
 
   const handleStopFap = useCallback(() => {
     if (!fappingRef.current) return;
@@ -212,8 +220,8 @@ export default function App() {
     countdownBusyRef.current = false;
     setCenterLabel(null);
     setFapping(false);
-    showToast("PAUSE FAP");
-  }, [showToast]);
+    showToast(t("toast.pauseFap"));
+  }, [showToast, t]);
 
   const handleToggleFap = useCallback(() => {
     if (fappingRef.current) handleStopFap();
@@ -226,29 +234,29 @@ export default function App() {
     if (!ok) return;
     if (cumTimerRef.current) window.clearTimeout(cumTimerRef.current);
     setCumActive(true);
-    setCenterLabel("I'M GONNA CUM");
+    setCenterLabel(t("toast.gonnaCum"));
     window.setTimeout(() => setCenterLabel(null), 900);
-    showToast("×3 ACTIVE", 2000);
+    showToast(t("toast.cumActive"), 2000);
     cumTimerRef.current = window.setTimeout(() => {
       setCumActive(false);
-      showToast("EDGE COOLDOWN");
+      showToast(t("toast.edgeCooldown"));
     }, CUM_DURATION_MS);
-  }, [cumActive, runCenterCountdown, showToast]);
+  }, [cumActive, runCenterCountdown, showToast, t]);
 
   const handleRecStart = useCallback(() => {
     void recorder.start();
-    showToast("REC START");
-  }, [recorder, showToast]);
+    showToast(t("toast.recStart"));
+  }, [recorder, showToast, t]);
 
   const handleRecPause = useCallback(() => {
     if (recorder.paused) {
       recorder.resume();
-      showToast("REC RESUME");
+      showToast(t("toast.recResume"));
     } else {
       recorder.pause();
-      showToast("REC PAUSE");
+      showToast(t("toast.recPause"));
     }
-  }, [recorder, showToast]);
+  }, [recorder, showToast, t]);
 
   const persistCurrentSession = useCallback(
     async (blob: Blob | null) => {
@@ -269,12 +277,12 @@ export default function App() {
 
   const handleRecStop = useCallback(async () => {
     const blob = await recorder.stop();
-    showToast("REC STOP");
+    showToast(t("toast.recStop"));
     if (blob) {
       await persistCurrentSession(blob);
-      showToast("Session sauvegardée");
+      showToast(t("toast.sessionSaved"));
     }
-  }, [recorder, showToast, persistCurrentSession]);
+  }, [recorder, showToast, persistCurrentSession, t]);
 
   const onHudAction = useCallback(
     (action: HudAction) => {
@@ -321,6 +329,7 @@ export default function App() {
       recPaused: recorder.paused,
       cumActive,
     },
+    hudLabels: messages.hud,
     onPump,
     onFaceActionTick,
     onHudAction,
@@ -408,7 +417,7 @@ export default function App() {
     camera.stop();
     resetArenaState();
     setScreen("home");
-    showToast("Retour à l’accueil");
+    showToast(t("toast.backHome"));
   }, [
     recorder,
     pumps,
@@ -418,6 +427,7 @@ export default function App() {
     camera,
     resetArenaState,
     showToast,
+    t,
   ]);
 
   const handleReset = () => {
@@ -493,16 +503,16 @@ export default function App() {
   const statusTitle = camera.error
     ? camera.error
     : !camera.ready
-      ? "Caméra off"
+      ? t("status.camOff")
       : vision.status === "tracking" || vision.status === "ready"
-        ? "Tracking OK"
+        ? t("status.trackingOk")
         : vision.status === "no-hand"
-          ? "Montre tes mains"
+          ? t("status.showHands")
           : vision.status === "loading"
-            ? "Chargement…"
+            ? t("status.loading")
             : vision.status === "error"
-              ? "Tracking KO"
-              : "En attente";
+              ? t("status.trackingKo")
+              : t("status.waiting");
   const resolutionText =
     camera.width && camera.height
       ? `${camera.width}×${camera.height}`
@@ -513,7 +523,7 @@ export default function App() {
       <header className="relative z-10 flex h-12 shrink-0 items-center justify-between gap-2 px-2 sm:h-14 sm:gap-3 sm:px-3 md:px-6">
         <div className="min-w-0 shrink">
           <p className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-cbs-accent sm:block">
-            Local only
+            {t("header.localOnly")}
           </p>
           <h1 className="font-display truncate text-sm text-white sm:text-base md:text-lg">
             CAMBATE <span className="cbs-gradient-text">SOLO</span>
@@ -553,12 +563,13 @@ export default function App() {
             </>
           ) : (
             <div className="hidden text-right text-[11px] text-cbs-muted sm:block">
-              Best{" "}
+              {t("header.best")}{" "}
               <span className="text-white">{lifetime.bestScore}</span>
               {" · "}
               <span className="text-cbs-accent">×{lifetime.bestCombo}</span>
             </div>
           )}
+          <LangToggle />
         </div>
       </header>
 
@@ -593,7 +604,7 @@ export default function App() {
                       setPreviewUrl(null);
                     }}
                   >
-                    Fermer
+                    {t("home.close")}
                   </button>
                 </div>
               </div>
@@ -605,7 +616,7 @@ export default function App() {
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-cbs-bg1 p-6 text-center sm:p-8">
                 <div className="h-1 w-24 rounded-full cbs-gradient-bg" />
                 <h2 className="font-display text-xl text-white sm:text-2xl md:text-3xl">
-                  ACTIVATION CAM…
+                  {t("arena.activating")}
                 </h2>
                 {(camera.error || vision.error) && (
                   <p className="text-sm text-cbs-live">
@@ -617,7 +628,7 @@ export default function App() {
                   className="cbs-btn cbs-btn-ghost"
                   onClick={() => void handleExitArena()}
                 >
-                  Retour
+                  {t("arena.back")}
                 </button>
               </div>
             )}

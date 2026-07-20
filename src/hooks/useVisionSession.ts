@@ -96,6 +96,8 @@ type Options = {
   enabled: boolean;
   overlays: OverlayFlags;
   session: SessionFlags;
+  /** Labels HUD cam (i18n) */
+  hudLabels?: import("@/lib/camHud").HudLayoutOpts["labels"];
   onPump: () => void;
   onFaceActionTick: (action: FaceHandAction) => void;
   onHudAction: (action: HudAction) => void;
@@ -171,6 +173,7 @@ export function useVisionSession({
   enabled,
   overlays,
   session,
+  hudLabels,
   onPump,
   onFaceActionTick,
   onHudAction,
@@ -202,6 +205,8 @@ export function useVisionSession({
   overlaysRef.current = overlays;
   const sessionRef = useRef(session);
   sessionRef.current = session;
+  const hudLabelsRef = useRef(hudLabels);
+  hudLabelsRef.current = hudLabels;
   const onPumpRef = useRef(onPump);
   onPumpRef.current = onPump;
   const onFaceTickRef = useRef(onFaceActionTick);
@@ -522,6 +527,7 @@ export function useVisionSession({
           const buttons = ov.showHud
             ? layoutHudButtons(hudState, {
                 compact: h > w || w < 700,
+                labels: hudLabelsRef.current,
               })
             : [];
           const tipHand = tracked[0];
