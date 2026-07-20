@@ -22,10 +22,11 @@ Ouvre `http://localhost:5173` (la caméra exige localhost ou HTTPS).
 ## Fonctionnalités MVP
 
 1. Activation caméra
-2. Détection de main + comptage de pumps (mouvement haut/bas du poing)
-3. Score + combo + multiplicateurs
-4. Record live (cam miroir + skeleton + HUD score) → téléchargement `.webm`
-5. Stats best score / best combo en `localStorage`
+2. Tracking **2 mains** + **visage** (yeux / bouche précis, blendshapes)
+3. Fap 1 ou 2 mains · main près du visage = **vape** (nez) / **poppers** (bouche)
+4. États visage : yeux ouverts/fermés, bouche ouverte/fermée, langue dehors
+5. **HUD cam interactif** : Start fap / Rec / I'm gonna cum — pinch ou dwell
+6. Record live → `.webm` · stats en `localStorage`
 
 ## DA
 

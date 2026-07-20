@@ -3,7 +3,14 @@ import { useCallback, useRef, useState } from "react";
 type Options = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   overlayRef: React.RefObject<HTMLCanvasElement | null>;
-  getHud: () => { pumps: number; score: number; combo: number; multiplier: number };
+  getHud: () => {
+    pumps: number;
+    score: number;
+    combo: number;
+    multiplier: number;
+    fapping: boolean;
+    cumActive: boolean;
+  };
 };
 
 function pickMimeType(): string | undefined {
@@ -18,11 +25,12 @@ function pickMimeType(): string | undefined {
 
 export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [lastBlobUrl, setLastBlobUrl] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const composeRafRef = useRef<number>(0);
-  const composeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pausedRef = useRef(false);
 
   const stopCompose = useCallback(() => {
     if (composeRafRef.current) cancelAnimationFrame(composeRafRef.current);
@@ -43,28 +51,20 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
-    composeCanvasRef.current = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const paint = () => {
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, -w, 0, w, h);
-      ctx.restore();
+      ctx.drawImage(video, 0, 0, w, h);
 
       const overlay = overlayRef.current;
       if (overlay && overlay.width > 0) {
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.drawImage(overlay, -w, 0, w, h);
-        ctx.restore();
+        ctx.drawImage(overlay, 0, 0, w, h);
       }
 
       const hud = getHud();
-      // Score HUD
       ctx.fillStyle = "rgba(10,10,10,0.55)";
-      ctx.fillRect(24, 24, 280, 110);
+      ctx.fillRect(24, 24, 300, 120);
       ctx.fillStyle = "#FBFF4D";
       ctx.font = "700 28px Mazzard, system-ui, sans-serif";
       ctx.fillText(`${hud.pumps} PUMPS`, 40, 62);
@@ -73,20 +73,21 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
       ctx.fillText(`SCORE ${Math.floor(hud.score)}`, 40, 92);
       ctx.fillStyle = "#AF9EFF";
       ctx.font = "500 14px Mazzard, system-ui, sans-serif";
-      ctx.fillText(
-        `COMBO x${hud.combo} · ×${hud.multiplier}`,
-        40,
-        116,
-      );
+      ctx.fillText(`COMBO x${hud.combo} · ×${hud.multiplier}`, 40, 116);
 
-      // LIVE badge
+      if (hud.cumActive) {
+        ctx.fillStyle = "#F41141";
+        ctx.font = "700 16px Mazzard, system-ui, sans-serif";
+        ctx.fillText("I'M GONNA CUM", w / 2 - 70, 48);
+      }
+
       ctx.fillStyle = "#F41141";
       ctx.beginPath();
       ctx.arc(w - 48, 40, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#FFFFFF";
       ctx.font = "600 14px Mazzard, system-ui, sans-serif";
-      ctx.fillText("REC", w - 100, 45);
+      ctx.fillText(pausedRef.current ? "PAUSE" : "REC", w - 110, 45);
 
       composeRafRef.current = requestAnimationFrame(paint);
     };
@@ -107,21 +108,42 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
       const blob = new Blob(chunksRef.current, {
         type: mimeType ?? "video/webm",
       });
-      const url = URL.createObjectURL(blob);
-      setLastBlobUrl(url);
+      setLastBlobUrl(URL.createObjectURL(blob));
       setRecording(false);
+      pausedRef.current = false;
+      setPaused(false);
       recorderRef.current = null;
     };
     recorder.start(250);
     recorderRef.current = recorder;
     setRecording(true);
+    pausedRef.current = false;
+    setPaused(false);
   }, [videoRef, overlayRef, getHud, lastBlobUrl, stopCompose]);
+
+  const pause = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+    recorder.pause();
+    pausedRef.current = true;
+    setPaused(true);
+  }, []);
+
+  const resume = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "paused") return;
+    recorder.resume();
+    pausedRef.current = false;
+    setPaused(false);
+  }, []);
 
   const stop = useCallback(() => {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === "inactive") {
       stopCompose();
       setRecording(false);
+      pausedRef.current = false;
+      setPaused(false);
       return;
     }
     recorder.stop();
@@ -135,10 +157,14 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
     a.click();
   }, [lastBlobUrl]);
 
-  const clearClip = useCallback(() => {
-    if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
-    setLastBlobUrl(null);
-  }, [lastBlobUrl]);
-
-  return { recording, lastBlobUrl, start, stop, download, clearClip };
+  return {
+    recording,
+    paused,
+    lastBlobUrl,
+    start,
+    pause,
+    resume,
+    stop,
+    download,
+  };
 }
