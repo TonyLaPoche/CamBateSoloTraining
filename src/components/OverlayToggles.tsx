@@ -22,8 +22,8 @@ function Chip({
       onClick={onClick}
       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
         active
-          ? "border-bm-primary bg-bm-primary text-black"
-          : "border-bm-bg3 bg-black/50 text-bm-muted hover:text-white"
+          ? "border-cbs-primary bg-cbs-primary text-black"
+          : "border-cbs-bg3 bg-black/50 text-cbs-muted hover:text-white"
       }`}
     >
       {label}

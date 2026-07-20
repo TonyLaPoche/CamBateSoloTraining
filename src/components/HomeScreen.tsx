@@ -33,19 +33,19 @@ export function HomeScreen({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 py-2">
-      <section className="rounded-2xl border border-bm-bg3 bg-bm-bg1 p-6 md:p-8">
-        <div className="h-1 w-20 rounded-full bm-gradient-bg" />
+      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-6 md:p-8">
+        <div className="h-1 w-20 rounded-full cbs-gradient-bg" />
         <h2 className="mt-4 font-display text-2xl text-white md:text-4xl">
           CAMBATE SOLO
         </h2>
-        <p className="mt-2 max-w-lg text-sm text-bm-muted">
+        <p className="mt-2 max-w-lg text-sm text-cbs-muted">
           Choisis un pseudo (4–5 lettres), puis entre dans l’arène. Tes scores
           seront sauvegardés au format{" "}
-          <span className="text-bm-primary">AABB-20-07-2026-22:39</span>.
+          <span className="text-cbs-primary">AABB-20-07-2026-22:39</span>.
         </p>
 
         <label className="mt-6 block">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-bm-brand">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cbs-accent">
             Pseudo
           </span>
           <input
@@ -56,20 +56,20 @@ export function HomeScreen({
             spellCheck={false}
             placeholder="AABB"
             onChange={(e) => setPseudo(normalizePseudo(e.target.value))}
-            className="mt-2 w-full max-w-xs rounded-xl border border-bm-bg3 bg-black/50 px-4 py-3 font-display text-2xl tracking-[0.2em] text-bm-primary outline-none placeholder:text-bm-muted focus:border-bm-primary"
+            className="mt-2 w-full max-w-xs rounded-xl border border-cbs-bg3 bg-black/50 px-4 py-3 font-display text-2xl tracking-[0.2em] text-cbs-primary outline-none placeholder:text-cbs-muted focus:border-cbs-primary"
           />
-          <span className="mt-2 block text-xs text-bm-muted">
+          <span className="mt-2 block text-xs text-cbs-muted">
             {normalized.length}/5 · lettres uniquement
             {!valid && normalized.length > 0 ? " · min. 4 lettres" : ""}
           </span>
         </label>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-bm-muted">
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-cbs-muted">
           <span>
             Best score <strong className="text-white">{bestScore}</strong>
           </span>
           <span>
-            Best combo <strong className="text-bm-brand">×{bestCombo}</strong>
+            Best combo <strong className="text-cbs-accent">×{bestCombo}</strong>
           </span>
           <span>
             Sessions <strong className="text-white">{sessions.length}</strong>
@@ -77,7 +77,7 @@ export function HomeScreen({
         </div>
         <button
           type="button"
-          className="bm-btn bm-btn-primary mt-6"
+          className="cbs-btn cbs-btn-primary mt-6"
           disabled={!valid}
           onClick={() => onEnterArena(normalized)}
         >
@@ -85,12 +85,12 @@ export function HomeScreen({
         </button>
       </section>
 
-      <section className="rounded-2xl border border-bm-bg3 bg-bm-bg1 p-4 md:p-6">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-bm-brand">
+      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-4 md:p-6">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cbs-accent">
           Sessions enregistrées
         </h3>
         {sessions.length === 0 ? (
-          <p className="mt-4 text-sm text-bm-muted">
+          <p className="mt-4 text-sm text-cbs-muted">
             Aucune session pour l’instant. Rec pendant un fap, puis Exit —
             le clip apparaîtra ici.
           </p>
@@ -99,11 +99,11 @@ export function HomeScreen({
             {sessions.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-bm-bg3 bg-black/40 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cbs-bg3 bg-black/40 px-4 py-3"
               >
                 <div>
-                  <p className="font-mono text-sm text-bm-primary">{s.id}</p>
-                  <p className="mt-1 text-xs text-bm-muted">
+                  <p className="font-mono text-sm text-cbs-primary">{s.id}</p>
+                  <p className="mt-1 text-xs text-cbs-muted">
                     {s.pseudo ? `${s.pseudo} · ` : ""}
                     {s.pumps} pumps · score {s.score} · combo ×{s.bestCombo} ·{" "}
                     {formatDuration(s.durationMs)}
@@ -115,14 +115,14 @@ export function HomeScreen({
                     <>
                       <button
                         type="button"
-                        className="bm-btn bm-btn-primary !px-3 !py-1.5 !text-xs"
+                        className="cbs-btn cbs-btn-primary !px-3 !py-1.5 !text-xs"
                         onClick={() => onPlay(s.id)}
                       >
                         Play
                       </button>
                       <button
                         type="button"
-                        className="bm-btn bm-btn-ghost !px-3 !py-1.5 !text-xs"
+                        className="cbs-btn cbs-btn-ghost !px-3 !py-1.5 !text-xs"
                         onClick={() => onDownload(s.id)}
                       >
                         DL
@@ -131,7 +131,7 @@ export function HomeScreen({
                   )}
                   <button
                     type="button"
-                    className="bm-btn bm-btn-ghost !px-3 !py-1.5 !text-xs"
+                    className="cbs-btn cbs-btn-ghost !px-3 !py-1.5 !text-xs"
                     onClick={() => onDelete(s.id)}
                   >
                     Suppr

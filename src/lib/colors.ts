@@ -1,8 +1,8 @@
-/** Palette alignée sur Batemates / BmLiveSeshWeb */
+/** Palette CamBate Solo */
 export const COLORS = {
   primary: "#FBFF4D",
   secondary: "#4D5DFF",
-  brandText: "#AF9EFF",
+  accent: "#AF9EFF",
   primaryText: "#FFFFFF",
   secondaryText: "#73716D",
   background: "#0A0A0A",

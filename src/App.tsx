@@ -474,11 +474,11 @@ export default function App() {
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
       <header className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 md:px-6 md:py-3">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-bm-brand">
-            Batemates · local
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cbs-accent">
+            Local only
           </p>
           <h1 className="font-display text-base text-white md:text-lg">
-            CAMBATE <span className="bm-gradient-text">SOLO</span>
+            CAMBATE <span className="cbs-gradient-text">SOLO</span>
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -494,20 +494,20 @@ export default function App() {
           )}
           {inArena ? (
             <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-full border border-bm-bg3 bg-black/50 px-3 py-1.5 font-mono text-[11px] text-bm-primary">
+              <div className="rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 font-mono text-[11px] text-cbs-primary">
                 {pseudo || "????"}
               </div>
-              <div className="rounded-full border border-bm-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-bm-muted">
+              <div className="rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-cbs-muted">
                 {statusText}
                 {resolutionText ? ` · ${resolutionText}` : ""}
               </div>
             </div>
           ) : (
-            <div className="hidden text-right text-[11px] text-bm-muted sm:block">
+            <div className="hidden text-right text-[11px] text-cbs-muted sm:block">
               Best{" "}
               <span className="text-white">{lifetime.bestScore}</span>
               {" · "}
-              <span className="text-bm-brand">×{lifetime.bestCombo}</span>
+              <span className="text-cbs-accent">×{lifetime.bestCombo}</span>
             </div>
           )}
         </div>
@@ -528,7 +528,7 @@ export default function App() {
             />
             {previewUrl && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-                <div className="w-full max-w-3xl rounded-2xl border border-bm-bg3 bg-bm-bg1 p-3">
+                <div className="w-full max-w-3xl rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-3">
                   <video
                     src={previewUrl}
                     controls
@@ -537,7 +537,7 @@ export default function App() {
                   />
                   <button
                     type="button"
-                    className="bm-btn bm-btn-ghost mt-3 w-full"
+                    className="cbs-btn cbs-btn-ghost mt-3 w-full"
                     onClick={() => {
                       URL.revokeObjectURL(previewUrl);
                       setPreviewUrl(null);
@@ -550,21 +550,21 @@ export default function App() {
             )}
           </>
         ) : (
-          <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-bm-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+          <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-cbs-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
             {!camera.ready && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-bm-bg1 p-8 text-center">
-                <div className="h-1 w-24 rounded-full bm-gradient-bg" />
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-cbs-bg1 p-8 text-center">
+                <div className="h-1 w-24 rounded-full cbs-gradient-bg" />
                 <h2 className="font-display text-2xl text-white md:text-3xl">
                   ACTIVATION CAM…
                 </h2>
                 {(camera.error || vision.error) && (
-                  <p className="text-sm text-bm-live">
+                  <p className="text-sm text-cbs-live">
                     {camera.error ?? vision.error}
                   </p>
                 )}
                 <button
                   type="button"
-                  className="bm-btn bm-btn-ghost"
+                  className="cbs-btn cbs-btn-ghost"
                   onClick={() => void handleExitArena()}
                 >
                   Retour
@@ -604,7 +604,7 @@ export default function App() {
             <MilestoneToast message={toast} />
 
             {recorder.recording && (
-              <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-bm-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141]">
+              <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-cbs-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141]">
                 <span className="live-dot h-2 w-2 rounded-full bg-white" />
                 {recorder.paused ? "PAUSE" : "REC"}
               </div>

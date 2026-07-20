@@ -5,7 +5,7 @@ Entraînement solo local : caméra + tracking de main (MediaPipe) + score type c
 ## Stack
 
 - **Vite + React 19 + TypeScript** — SPA locale, idéale pour cam / WASM / MediaRecorder
-- **Tailwind CSS 4** — DA alignée Batemates
+- **Tailwind CSS 4** — DA CamBate Solo
 - **@mediapipe/tasks-vision** — Hand Landmarker (100 % navigateur)
 
 Pas de Next.js : pas besoin de SSR pour une app cam locale.
@@ -30,4 +30,4 @@ Ouvre `http://localhost:5173` (la caméra exige localhost ou HTTPS).
 
 ## DA
 
-Palette et typos Batemates : fond `#0A0A0A`, accent `#FBFF4D`, brand `#AF9EFF`, gradient rouge→violet, fonts Mazzard + PPMonumentExtended.
+Palette et typos : fond `#0A0A0A`, accent `#FBFF4D`, brand `#AF9EFF`, gradient rouge→violet, fonts Mazzard + PPMonumentExtended.

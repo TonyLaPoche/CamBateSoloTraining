@@ -7,7 +7,7 @@ export function ExitArenaButton({ onExit }: Props) {
     <button
       type="button"
       onClick={onExit}
-      className="absolute right-3 top-3 z-30 flex items-center gap-2 rounded-full border border-bm-bg3 bg-black/70 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-bm-live hover:text-bm-primary"
+      className="absolute right-3 top-3 z-30 flex items-center gap-2 rounded-full border border-cbs-bg3 bg-black/70 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-cbs-live hover:text-cbs-primary"
       aria-label="Exit"
     >
       <svg
