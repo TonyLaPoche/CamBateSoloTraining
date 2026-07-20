@@ -235,10 +235,10 @@ export function drawHudButtons(
       ctx.fill();
     }
 
-    // Taille proportionnelle au bouton (lisible en 1080p / 4K)
+    // Taille proportionnelle au bouton (lisible mobile → 4K)
     const byHeight = bh * 0.42;
     const byWidth = (bw * 0.92) / Math.max(4, b.label.length * 0.58);
-    const fontSize = Math.max(18, Math.min(byHeight, byWidth, 36));
+    const fontSize = Math.max(11, Math.min(byHeight, byWidth, 36));
 
     ctx.fillStyle = "#FFFFFF";
     ctx.font = `700 ${fontSize}px Mazzard, system-ui, sans-serif`;

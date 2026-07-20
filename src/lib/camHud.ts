@@ -25,57 +25,89 @@ export type HudRuntimeState = {
   cumActive: boolean;
 };
 
+export type HudLayoutOpts = {
+  /** Portrait / étroit : boutons plus hauts, labels courts */
+  compact?: boolean;
+};
+
 /** Boutons en haut de la cam — 3 slots */
-export function layoutHudButtons(state: HudRuntimeState): HudButton[] {
-  const y = 0.028;
-  const h = 0.09;
+export function layoutHudButtons(
+  state: HudRuntimeState,
+  opts: HudLayoutOpts = {},
+): HudButton[] {
+  const compact = opts.compact ?? false;
+  const y = compact ? 0.02 : 0.028;
+  const h = compact ? 0.085 : 0.09;
+  const gap = 0.02;
+  const side = 0.025;
+  const usable = 1 - side * 2 - gap * 2;
+  const w3 = usable / 3;
+
+  const fapLabel = compact
+    ? state.fapping
+      ? "PAUSE"
+      : "START"
+    : state.fapping
+      ? "PAUSE FAP"
+      : "START FAP";
+  const cumLabel = compact
+    ? state.cumActive
+      ? "EDGE"
+      : "CUM ×3"
+    : state.cumActive
+      ? "EDGE…"
+      : "I'M GONNA CUM";
+
   const buttons: HudButton[] = [
     {
       id: "toggle-fap",
-      label: state.fapping ? "PAUSE FAP" : "START FAP",
-      x: 0.03,
+      label: fapLabel,
+      x: side,
       y,
-      w: 0.28,
+      w: w3,
       h,
       accent: state.fapping ? "#AF9EFF" : "#FBFF4D",
     },
     {
       id: "gonna-cum",
-      label: state.cumActive ? "EDGE…" : "I'M GONNA CUM",
-      x: 0.36,
+      label: cumLabel,
+      x: side + w3 + gap,
       y,
-      w: 0.28,
+      w: w3,
       h,
       accent: "#FF0107",
     },
   ];
 
+  const recX = side + (w3 + gap) * 2;
+
   if (!state.recording) {
     buttons.push({
       id: "rec-start",
-      label: "REC START",
-      x: 0.69,
+      label: compact ? "REC" : "REC START",
+      x: recX,
       y,
-      w: 0.28,
+      w: w3,
       h,
       accent: "#F41141",
     });
   } else {
+    const half = (w3 - gap) / 2;
     buttons.push({
       id: "rec-pause",
-      label: state.paused ? "RESUME" : "PAUSE",
-      x: 0.69,
+      label: state.paused ? (compact ? "▶" : "RESUME") : compact ? "❚❚" : "PAUSE",
+      x: recX,
       y,
-      w: 0.13,
+      w: half,
       h,
       accent: "#FBFF4D",
     });
     buttons.push({
       id: "rec-stop",
       label: "STOP",
-      x: 0.84,
+      x: recX + half + gap,
       y,
-      w: 0.13,
+      w: half,
       h,
       accent: "#F41141",
     });

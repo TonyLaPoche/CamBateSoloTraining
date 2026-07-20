@@ -413,7 +413,9 @@ export function useVisionSession({
               paused: sess.recPaused,
               cumActive: sess.cumActive,
             };
-            const buttons = layoutHudButtons(hudState);
+            const buttons = layoutHudButtons(hudState, {
+              compact: h > w || w < 700,
+            });
             const tipHand = tracked[0];
             const tipForHud = tipHand ? indexTip(tipHand.landmarks) : null;
             // Prefer non-pumping / face hand for HUD if dual

@@ -7,7 +7,7 @@ export function ExitArenaButton({ onExit }: Props) {
     <button
       type="button"
       onClick={onExit}
-      className="absolute right-3 top-3 z-30 flex items-center gap-2 rounded-full border border-cbs-bg3 bg-black/70 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-cbs-live hover:text-cbs-primary"
+      className="absolute right-2 top-2 z-30 flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-cbs-bg3 bg-black/70 px-2.5 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-cbs-live hover:text-cbs-primary sm:right-3 sm:top-3 sm:gap-2 sm:px-3"
       aria-label="Exit"
     >
       <svg
@@ -31,7 +31,7 @@ export function ExitArenaButton({ onExit }: Props) {
           strokeLinejoin="round"
         />
       </svg>
-      Exit
+      <span className="hidden sm:inline">Exit</span>
     </button>
   );
 }

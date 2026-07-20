@@ -1,33 +1,46 @@
 # CamBate Solo Training
 
-Entraînement solo local : caméra + tracking de main (MediaPipe) + score type clicker + record de session.
+Entraînement solo : caméra + tracking main/visage (MediaPipe) + score type clicker + record de session.
+
+**Live :** [https://tonylapoche.github.io/CamBateSoloTraining/](https://tonylapoche.github.io/CamBateSoloTraining/)
 
 ## Stack
 
-- **Vite + React 19 + TypeScript** — SPA locale, idéale pour cam / WASM / MediaRecorder
-- **Tailwind CSS 4** — DA CamBate Solo
-- **@mediapipe/tasks-vision** — Hand Landmarker (100 % navigateur)
+- **Vite + React 19 + TypeScript**
+- **Tailwind CSS 4**
+- **@mediapipe/tasks-vision** (Hand + Face Landmarker, 100 % navigateur)
 
-Pas de Next.js : pas besoin de SSR pour une app cam locale.
-
-## Lancer
+## Lancer en local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Ouvre `http://localhost:5173` (la caméra exige localhost ou HTTPS).
+Ouvre `http://localhost:5173/CamBateSoloTraining/` (le `base` Vite est celui de GitHub Pages).  
+La caméra exige **localhost** ou **HTTPS**.
 
-## Fonctionnalités MVP
+## Déploiement GitHub Pages
 
-1. Activation caméra
-2. Tracking **2 mains** + **visage** (yeux / bouche précis, blendshapes)
-3. Fap 1 ou 2 mains · main près du visage = **vape** (nez) / **poppers** (bouche)
-4. États visage : yeux ouverts/fermés, bouche ouverte/fermée, langue dehors
-5. **HUD cam interactif** : Start fap / Rec / I'm gonna cum — pinch ou dwell
-6. Record live → `.webm` · stats en `localStorage`
+Le workflow `.github/workflows/deploy-pages.yml` build et publie `dist/` à chaque push sur `main`.
+
+**Une fois :**
+
+1. Repo → **Settings** → **Pages**
+2. Source : **GitHub Actions**
+3. Push sur `main` (ou lance le workflow manuellement)
+
+URL : `https://<user>.github.io/CamBateSoloTraining/`
+
+## Fonctionnalités
+
+1. Pseudo 4–5 lettres → arène cam
+2. Tracking **2 mains** + **visage** (yeux / bouche)
+3. Bonus cumulables : mains jointes ×2 · 1 œil ×1.5 · 2 yeux ×4 · bouche ×2 · gonna cum ×3
+4. HUD cam interactif (dwell / pinch)
+5. Record `.webm` + sessions locales (IndexedDB)
+6. UI responsive mobile
 
 ## DA
 
-Palette et typos : fond `#0A0A0A`, accent `#FBFF4D`, brand `#AF9EFF`, gradient rouge→violet, fonts Mazzard + PPMonumentExtended.
+Fond `#0A0A0A`, accent `#FBFF4D`, brand `#AF9EFF`, gradient rouge→violet, fonts Mazzard + PPMonumentExtended.

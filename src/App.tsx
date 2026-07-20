@@ -489,17 +489,17 @@ export default function App() {
       : "—×—";
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
-      <header className="relative z-10 flex h-14 shrink-0 items-center justify-between gap-3 px-3 md:px-6">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
+      <header className="relative z-10 flex h-12 shrink-0 items-center justify-between gap-2 px-2 sm:h-14 sm:gap-3 sm:px-3 md:px-6">
         <div className="min-w-0 shrink">
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cbs-accent">
+          <p className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-cbs-accent sm:block">
             Local only
           </p>
-          <h1 className="font-display truncate text-base text-white md:text-lg">
+          <h1 className="font-display truncate text-sm text-white sm:text-base md:text-lg">
             CAMBATE <span className="cbs-gradient-text">SOLO</span>
           </h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
           {inArena && camera.ready && (
             <OverlayToggles
               showHands={showHands}
@@ -512,11 +512,11 @@ export default function App() {
           )}
           {inArena ? (
             <>
-              <div className="w-14 shrink-0 truncate rounded-full border border-cbs-bg3 bg-black/50 px-2 py-1.5 text-center font-mono text-[11px] text-cbs-primary">
+              <div className="w-12 shrink-0 truncate rounded-full border border-cbs-bg3 bg-black/50 px-1.5 py-1 text-center font-mono text-[10px] text-cbs-primary sm:w-14 sm:px-2 sm:py-1.5 sm:text-[11px]">
                 {pseudo || "????"}
               </div>
               <div
-                className="flex w-[9.5rem] shrink-0 items-center gap-2 rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-cbs-muted"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-cbs-bg3 bg-black/50 px-2 py-1 text-[10px] text-cbs-muted sm:w-[9.5rem] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-[11px]"
                 title={statusTitle}
               >
                 <span
@@ -526,7 +526,7 @@ export default function App() {
                     camera.error,
                   )}`}
                 />
-                <span className="truncate font-mono tabular-nums">
+                <span className="hidden truncate font-mono tabular-nums sm:inline">
                   {resolutionText}
                 </span>
               </div>
@@ -542,7 +542,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-2 pb-2 md:px-4">
+      <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:px-2 sm:pb-2 md:px-4">
         {screen === "home" ? (
           <>
             <HomeScreen
@@ -556,13 +556,14 @@ export default function App() {
               onDownload={(id) => void handleDownloadSession(id)}
             />
             {previewUrl && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-                <div className="w-full max-w-3xl rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-3">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4">
+                <div className="w-full max-w-3xl rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-2 sm:p-3">
                   <video
                     src={previewUrl}
                     controls
+                    playsInline
                     autoPlay
-                    className="max-h-[70vh] w-full rounded-xl bg-black"
+                    className="max-h-[70dvh] w-full rounded-xl bg-black"
                   />
                   <button
                     type="button"
@@ -579,11 +580,11 @@ export default function App() {
             )}
           </>
         ) : (
-          <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-cbs-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+          <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-cbs-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)] sm:rounded-2xl">
             {!camera.ready && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-cbs-bg1 p-8 text-center">
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-cbs-bg1 p-6 text-center sm:p-8">
                 <div className="h-1 w-24 rounded-full cbs-gradient-bg" />
-                <h2 className="font-display text-2xl text-white md:text-3xl">
+                <h2 className="font-display text-xl text-white sm:text-2xl md:text-3xl">
                   ACTIVATION CAM…
                 </h2>
                 {(camera.error || vision.error) && (
@@ -633,7 +634,7 @@ export default function App() {
             <MilestoneToast message={toast} />
 
             {recorder.recording && (
-              <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-cbs-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141]">
+              <div className="absolute right-2 top-12 z-20 flex items-center gap-1.5 rounded-full bg-cbs-live/90 px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_0_11.87px_0_#F41141] sm:right-3 sm:top-14 sm:gap-2 sm:px-3 sm:text-xs">
                 <span className="live-dot h-2 w-2 rounded-full bg-white" />
                 {recorder.paused ? "PAUSE" : "REC"}
               </div>

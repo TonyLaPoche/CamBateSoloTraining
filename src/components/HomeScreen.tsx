@@ -32,24 +32,26 @@ export function HomeScreen({
   const valid = isValidPseudo(normalized);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 py-2">
-      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-6 md:p-8">
-        <div className="h-1 w-20 rounded-full cbs-gradient-bg" />
-        <h2 className="mt-4 font-display text-2xl text-white md:text-4xl">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-0.5 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-1 sm:py-2">
+      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-4 sm:p-6 md:p-8">
+        <div className="h-1 w-16 rounded-full cbs-gradient-bg sm:w-20" />
+        <h2 className="mt-3 font-display text-xl text-white sm:mt-4 sm:text-2xl md:text-4xl">
           CAMBATE SOLO
         </h2>
-        <p className="mt-2 max-w-lg text-sm text-cbs-muted">
+        <p className="mt-2 max-w-lg text-xs leading-relaxed text-cbs-muted sm:text-sm">
           Choisis un pseudo (4–5 lettres), puis entre dans l’arène. Tes scores
           seront sauvegardés au format{" "}
-          <span className="text-cbs-primary">AABB-20-07-2026-22:39</span>.
+          <span className="break-all text-cbs-primary">AABB-20-07-2026-22:39</span>.
         </p>
 
-        <label className="mt-6 block">
+        <label className="mt-5 block sm:mt-6">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cbs-accent">
             Pseudo
           </span>
           <input
             type="text"
+            inputMode="text"
+            autoCapitalize="characters"
             value={pseudo}
             maxLength={5}
             autoComplete="off"
@@ -64,7 +66,7 @@ export function HomeScreen({
           </span>
         </label>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-cbs-muted">
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-cbs-muted">
           <span>
             Best score <strong className="text-white">{bestScore}</strong>
           </span>
@@ -77,7 +79,7 @@ export function HomeScreen({
         </div>
         <button
           type="button"
-          className="cbs-btn cbs-btn-primary mt-6"
+          className="cbs-btn cbs-btn-primary mt-5 w-full sm:mt-6 sm:w-auto"
           disabled={!valid}
           onClick={() => onEnterArena(normalized)}
         >
@@ -85,25 +87,27 @@ export function HomeScreen({
         </button>
       </section>
 
-      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-4 md:p-6">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-cbs-accent">
+      <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-3 sm:p-4 md:p-6">
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cbs-accent sm:text-xs">
           Sessions enregistrées
         </h3>
         {sessions.length === 0 ? (
-          <p className="mt-4 text-sm text-cbs-muted">
+          <p className="mt-3 text-xs text-cbs-muted sm:mt-4 sm:text-sm">
             Aucune session pour l’instant. Rec pendant un fap, puis Exit —
             le clip apparaîtra ici.
           </p>
         ) : (
-          <ul className="mt-4 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-2 sm:mt-4">
             {sessions.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cbs-bg3 bg-black/40 px-4 py-3"
+                className="flex flex-col gap-3 rounded-xl border border-cbs-bg3 bg-black/40 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-4"
               >
-                <div>
-                  <p className="font-mono text-sm text-cbs-primary">{s.id}</p>
-                  <p className="mt-1 text-xs text-cbs-muted">
+                <div className="min-w-0">
+                  <p className="break-all font-mono text-xs text-cbs-primary sm:text-sm">
+                    {s.id}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-cbs-muted sm:text-xs">
                     {s.pseudo ? `${s.pseudo} · ` : ""}
                     {s.pumps} pumps · score {s.score} · combo ×{s.bestCombo} ·{" "}
                     {formatDuration(s.durationMs)}
@@ -115,14 +119,14 @@ export function HomeScreen({
                     <>
                       <button
                         type="button"
-                        className="cbs-btn cbs-btn-primary !px-3 !py-1.5 !text-xs"
+                        className="cbs-btn cbs-btn-primary !min-h-9 !px-3 !py-1.5 !text-xs"
                         onClick={() => onPlay(s.id)}
                       >
                         Play
                       </button>
                       <button
                         type="button"
-                        className="cbs-btn cbs-btn-ghost !px-3 !py-1.5 !text-xs"
+                        className="cbs-btn cbs-btn-ghost !min-h-9 !px-3 !py-1.5 !text-xs"
                         onClick={() => onDownload(s.id)}
                       >
                         DL
@@ -131,7 +135,7 @@ export function HomeScreen({
                   )}
                   <button
                     type="button"
-                    className="cbs-btn cbs-btn-ghost !px-3 !py-1.5 !text-xs"
+                    className="cbs-btn cbs-btn-ghost !min-h-9 !px-3 !py-1.5 !text-xs"
                     onClick={() => onDelete(s.id)}
                   >
                     Suppr
