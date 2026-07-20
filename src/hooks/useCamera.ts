@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  cameraConstraints,
+  isMobilePerfProfile,
+} from "@/lib/devicePerf";
 
 export type CameraState = {
   stream: MediaStream | null;
@@ -7,34 +11,6 @@ export type CameraState = {
   width: number;
   height: number;
 };
-
-async function requestMaxResolution(
-  track: MediaStreamTrack,
-): Promise<{ width: number; height: number }> {
-  const caps = track.getCapabilities?.() as
-    | { width?: { max?: number }; height?: { max?: number } }
-    | undefined;
-
-  const maxW = caps?.width?.max;
-  const maxH = caps?.height?.max;
-
-  if (maxW && maxH) {
-    try {
-      await track.applyConstraints({
-        width: { ideal: maxW },
-        height: { ideal: maxH },
-      });
-    } catch {
-      // ignore — keep whatever the browser negotiated
-    }
-  }
-
-  const settings = track.getSettings();
-  return {
-    width: settings.width ?? 0,
-    height: settings.height ?? 0,
-  };
-}
 
 export function useCamera(videoRef: React.RefObject<HTMLVideoElement | null>) {
   const [state, setState] = useState<CameraState>({
@@ -62,27 +38,22 @@ export function useCamera(videoRef: React.RefObject<HTMLVideoElement | null>) {
   const start = useCallback(async () => {
     stop();
     try {
+      const mobile = isMobilePerfProfile();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: {
-          facingMode: "user",
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-          frameRate: { ideal: 30 },
-        },
+        video: cameraConstraints(mobile),
       });
       streamRef.current = stream;
       const track = stream.getVideoTracks()[0];
-      const dims = track
-        ? await requestMaxResolution(track)
-        : { width: 0, height: 0 };
+      const settings = track?.getSettings() ?? {};
 
       const video = videoRef.current;
       if (!video) throw new Error("Video element missing");
       video.srcObject = stream;
+      // iOS : playsInline déjà sur l’élément ; aide le decode
+      video.setAttribute("playsinline", "true");
       await video.play();
 
-      // Attendre les dimensions natives du flux
       await new Promise<void>((resolve) => {
         if (video.videoWidth > 0) {
           resolve();
@@ -99,8 +70,8 @@ export function useCamera(videoRef: React.RefObject<HTMLVideoElement | null>) {
         stream,
         error: null,
         ready: true,
-        width: video.videoWidth || dims.width,
-        height: video.videoHeight || dims.height,
+        width: video.videoWidth || settings.width || 0,
+        height: video.videoHeight || settings.height || 0,
       });
     } catch (e) {
       const message =

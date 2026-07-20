@@ -27,10 +27,19 @@ export type PumpDetectorResult = {
 
 /** Amplitude min sur MCP index (plus localisée que la paume) */
 const AMPLITUDE_MIN = 0.032;
+const AMPLITUDE_MIN_FAST = 0.026;
 const COOLDOWN_MS = 160;
+const COOLDOWN_MS_FAST = 110;
 const SMOOTH = 0.4;
+const SMOOTH_FAST = 0.22;
 /** Le stroke doit être clairement plus vertical qu'horizontal */
 const VERTICAL_RATIO = 1.25;
+const VERTICAL_RATIO_FAST = 1.1;
+
+export type PumpDetectorOptions = {
+  /** Moins de lissage + seuil plus bas — mieux pour fap rapide (mobile) */
+  fast?: boolean;
+};
 
 export function createPumpDetector(): PumpDetectorState {
   return {
@@ -50,11 +59,18 @@ export function stepPumpDetector(
   rawY: number,
   rawX = 0.5,
   now = performance.now(),
+  opts: PumpDetectorOptions = {},
 ): PumpDetectorResult {
+  const fast = opts.fast === true;
+  const smooth = fast ? SMOOTH_FAST : SMOOTH;
+  const ampMin = fast ? AMPLITUDE_MIN_FAST : AMPLITUDE_MIN;
+  const cooldown = fast ? COOLDOWN_MS_FAST : COOLDOWN_MS;
+  const vertRatio = fast ? VERTICAL_RATIO_FAST : VERTICAL_RATIO;
+
   const y =
-    state.lastY == null ? rawY : state.lastY * (1 - SMOOTH) + rawY * SMOOTH;
+    state.lastY == null ? rawY : state.lastY * (1 - smooth) + rawY * smooth;
   const x =
-    state.lastX == null ? rawX : state.lastX * (1 - SMOOTH) + rawX * SMOOTH;
+    state.lastX == null ? rawX : state.lastX * (1 - smooth) + rawX * smooth;
 
   let phase = state.phase;
   let peakY = state.peakY;
@@ -70,7 +86,7 @@ export function stepPumpDetector(
   }
 
   const mostlyVertical =
-    strokeVert >= strokeHoriz * VERTICAL_RATIO || strokeHoriz < 0.008;
+    strokeVert >= strokeHoriz * vertRatio || strokeHoriz < 0.01;
 
   if (phase === "idle") {
     peakY = y;
@@ -80,20 +96,18 @@ export function stepPumpDetector(
     phase = "down";
   } else if (phase === "down") {
     if (y > valleyY) valleyY = y;
-    // Zone MCP remonte après un creux
-    if (y < valleyY - AMPLITUDE_MIN * 0.45) {
+    if (y < valleyY - ampMin * 0.4) {
       peakY = y;
       phase = "up";
     }
   } else if (phase === "up") {
     if (y < peakY) peakY = y;
-    // Redescend après un sommet → candidat pump
-    if (y > peakY + AMPLITUDE_MIN * 0.45) {
+    if (y > peakY + ampMin * 0.4) {
       const amplitude = valleyY - peakY;
       if (
-        amplitude >= AMPLITUDE_MIN &&
+        amplitude >= ampMin &&
         mostlyVertical &&
-        now - lastPumpAt >= COOLDOWN_MS
+        now - lastPumpAt >= cooldown
       ) {
         pumped = true;
         lastPumpAt = now;

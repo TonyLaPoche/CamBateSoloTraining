@@ -25,23 +25,45 @@ export function drawHandSkeleton(
   color: string,
   roleLabel?: string,
   highlightMcp = false,
+  lite = false,
 ) {
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = 2.2;
-  for (const [a, b] of HAND_CONNECTIONS) {
-    const pa = landmarks[a];
-    const pb = landmarks[b];
-    if (!pa || !pb) continue;
-    ctx.beginPath();
-    ctx.moveTo(pa.x * w, pa.y * h);
-    ctx.lineTo(pb.x * w, pb.y * h);
-    ctx.stroke();
-  }
-  for (const p of landmarks) {
-    ctx.beginPath();
-    ctx.arc(p.x * w, p.y * h, 3.2, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.lineWidth = lite ? 1.6 : 2.2;
+
+  if (lite) {
+    // Squelette allégé : connexions seulement, points MCP clés
+    for (const [a, b] of HAND_CONNECTIONS) {
+      const pa = landmarks[a];
+      const pb = landmarks[b];
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(pa.x * w, pa.y * h);
+      ctx.lineTo(pb.x * w, pb.y * h);
+      ctx.stroke();
+    }
+    for (const idx of [0, 5, 8, 9, 12, 17] as const) {
+      const p = landmarks[idx];
+      if (!p) continue;
+      ctx.beginPath();
+      ctx.arc(p.x * w, p.y * h, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    for (const [a, b] of HAND_CONNECTIONS) {
+      const pa = landmarks[a];
+      const pb = landmarks[b];
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(pa.x * w, pa.y * h);
+      ctx.lineTo(pb.x * w, pb.y * h);
+      ctx.stroke();
+    }
+    for (const p of landmarks) {
+      ctx.beginPath();
+      ctx.arc(p.x * w, p.y * h, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   // Zone métacarpe index (5–6–9) — point suivi pour le compteur
@@ -51,14 +73,14 @@ export function drawHandSkeleton(
     const mid = landmarks[9];
     if (mcp) {
       ctx.beginPath();
-      ctx.arc(mcp.x * w, mcp.y * h, 9, 0, Math.PI * 2);
+      ctx.arc(mcp.x * w, mcp.y * h, lite ? 7 : 9, 0, Math.PI * 2);
       ctx.strokeStyle = "#FBFF4D";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = lite ? 2 : 2.5;
       ctx.stroke();
       ctx.fillStyle = "rgba(251,255,77,0.35)";
       ctx.fill();
     }
-    if (mcp && pip) {
+    if (mcp && pip && !lite) {
       ctx.beginPath();
       ctx.moveTo(mcp.x * w, mcp.y * h);
       ctx.lineTo(pip.x * w, pip.y * h);
@@ -70,7 +92,7 @@ export function drawHandSkeleton(
     }
   }
 
-  if (roleLabel) {
+  if (roleLabel && !lite) {
     const tip = landmarks[8] ?? landmarks[0];
     if (tip) {
       ctx.font = "600 13px Mazzard, system-ui, sans-serif";
