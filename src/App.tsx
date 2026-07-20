@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CenterCountdown } from "@/components/CenterCountdown";
 import { ControlBar } from "@/components/ControlBar";
+import { ExitArenaButton } from "@/components/ExitArenaButton";
+import { HomeScreen } from "@/components/HomeScreen";
 import { MilestoneToast } from "@/components/MilestoneToast";
 import { OverlayToggles } from "@/components/OverlayToggles";
 import { ScoreHud } from "@/components/ScoreHud";
@@ -15,10 +17,23 @@ import {
   milestoneFor,
   saveStats,
 } from "@/lib/score";
+import {
+  deleteSession,
+  getSessionBlob,
+  isValidPseudo,
+  listSessions,
+  loadStoredPseudo,
+  saveSession,
+  sessionFileName,
+  storePseudo,
+  type SavedSessionMeta,
+} from "@/lib/sessionLibrary";
 
 const COMBO_WINDOW_MS = 1800;
 const CUM_DURATION_MS = 12_000;
 const COUNTDOWN_STEP_MS = 1000;
+
+type Screen = "home" | "arena";
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => {
@@ -51,7 +66,10 @@ function trackingLabel(
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
-  const [started, setStarted] = useState(false);
+  const [screen, setScreen] = useState<Screen>("home");
+  const [sessions, setSessions] = useState<SavedSessionMeta[]>([]);
+  const [pseudo, setPseudo] = useState(loadStoredPseudo);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fapping, setFapping] = useState(false);
   const [cumActive, setCumActive] = useState(false);
   const [pumps, setPumps] = useState(0);
@@ -64,6 +82,7 @@ export default function App() {
   const [showHands, setShowHands] = useState(true);
   const [showFace, setShowFace] = useState(true);
   const [showHud, setShowHud] = useState(true);
+  const [sessionPeakCombo, setSessionPeakCombo] = useState(0);
 
   const lastPumpAtRef = useRef(0);
   const comboRef = useRef(0);
@@ -71,6 +90,7 @@ export default function App() {
   const countdownGenRef = useRef(0);
   const countdownBusyRef = useRef(false);
   const fappingRef = useRef(false);
+  const arenaStartedAtRef = useRef(0);
   const hudRef = useRef({
     pumps: 0,
     score: 0,
@@ -83,10 +103,23 @@ export default function App() {
   const camera = useCamera(videoRef);
   const baseMult = useMemo(() => comboMultiplier(combo), [combo]);
   const multiplier = baseMult * (cumActive ? 3 : 1);
+  const inArena = screen === "arena";
+
+  const refreshSessions = useCallback(async () => {
+    setSessions(await listSessions());
+  }, []);
+
+  useEffect(() => {
+    void refreshSessions();
+  }, [refreshSessions]);
 
   useEffect(() => {
     fappingRef.current = fapping;
   }, [fapping]);
+
+  useEffect(() => {
+    setSessionPeakCombo((p) => Math.max(p, combo));
+  }, [combo]);
 
   useEffect(() => {
     hudRef.current = {
@@ -221,10 +254,31 @@ export default function App() {
     }
   }, [recorder, showToast]);
 
-  const handleRecStop = useCallback(() => {
-    recorder.stop();
+  const persistCurrentSession = useCallback(
+    async (blob: Blob | null) => {
+      if (pumps <= 0 && !blob) return;
+      if (!isValidPseudo(pseudo)) return;
+      await saveSession({
+        pseudo,
+        pumps,
+        score,
+        bestCombo: sessionPeakCombo,
+        durationMs: Math.max(0, Date.now() - arenaStartedAtRef.current),
+        blob,
+      });
+      await refreshSessions();
+    },
+    [pseudo, pumps, score, sessionPeakCombo, refreshSessions],
+  );
+
+  const handleRecStop = useCallback(async () => {
+    const blob = await recorder.stop();
     showToast("REC STOP");
-  }, [recorder, showToast]);
+    if (blob) {
+      await persistCurrentSession(blob);
+      showToast("Session sauvegardée");
+    }
+  }, [recorder, showToast, persistCurrentSession]);
 
   const onHudAction = useCallback(
     (action: HudAction) => {
@@ -239,7 +293,7 @@ export default function App() {
           handleRecPause();
           break;
         case "rec-stop":
-          handleRecStop();
+          void handleRecStop();
           break;
         case "gonna-cum":
           void handleGonnaCum();
@@ -258,7 +312,7 @@ export default function App() {
   const vision = useVisionSession({
     videoRef,
     canvasRef: overlayRef,
-    enabled: camera.ready,
+    enabled: inArena && camera.ready,
     overlays: { showHands, showFace, showHud },
     session: {
       fapping,
@@ -295,10 +349,75 @@ export default function App() {
     });
   }, [combo, score, pumps]);
 
-  const handleStartCam = async () => {
-    setStarted(true);
-    await camera.start();
-  };
+  const resetArenaState = useCallback(() => {
+    setPumps(0);
+    setScore(0);
+    setCombo(0);
+    comboRef.current = 0;
+    setSessionPeakCombo(0);
+    setFapping(false);
+    setCumActive(false);
+    countdownGenRef.current += 1;
+    countdownBusyRef.current = false;
+    setCenterLabel(null);
+    recorder.clearClip();
+  }, [recorder]);
+
+  const handleEnterArena = useCallback(
+    async (nextPseudo: string) => {
+      if (!isValidPseudo(nextPseudo)) return;
+      storePseudo(nextPseudo);
+      setPseudo(nextPseudo);
+      resetArenaState();
+      arenaStartedAtRef.current = Date.now();
+      setScreen("arena");
+      await camera.start();
+    },
+    [camera, resetArenaState],
+  );
+
+  const handleExitArena = useCallback(async () => {
+    countdownGenRef.current += 1;
+    countdownBusyRef.current = false;
+    setCenterLabel(null);
+    setFapping(false);
+    setCumActive(false);
+
+    let blob: Blob | null = null;
+    if (recorder.recording) {
+      blob = await recorder.stop();
+    } else {
+      blob = recorder.lastBlobRef.current;
+    }
+
+    if (pumps > 0 || blob) {
+      await persistCurrentSession(blob);
+      setLifetime((prev) => {
+        const next = {
+          totalPumps: prev.totalPumps + pumps,
+          bestCombo: Math.max(prev.bestCombo, sessionPeakCombo),
+          bestScore: Math.max(prev.bestScore, Math.floor(score)),
+          sessions: prev.sessions + 1,
+        };
+        saveStats(next);
+        return next;
+      });
+    }
+
+    camera.stop();
+    resetArenaState();
+    setScreen("home");
+    showToast("Retour à l’accueil");
+  }, [
+    recorder,
+    pumps,
+    score,
+    sessionPeakCombo,
+    persistCurrentSession,
+    camera,
+    resetArenaState,
+    showToast,
+  ]);
 
   const handleReset = () => {
     setLifetime((prev) => {
@@ -311,18 +430,45 @@ export default function App() {
       saveStats(next);
       return next;
     });
-    setPumps(0);
-    setScore(0);
-    setCombo(0);
-    comboRef.current = 0;
-    setFapping(false);
-    setCumActive(false);
-    countdownGenRef.current += 1;
-    countdownBusyRef.current = false;
-    setCenterLabel(null);
+    resetArenaState();
   };
 
+  const handlePlaySession = useCallback(async (id: string) => {
+    const blob = await getSessionBlob(id);
+    if (!blob) return;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(blob));
+  }, [previewUrl]);
+
+  const handleDownloadSession = useCallback(async (id: string) => {
+    const blob = await getSessionBlob(id);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = sessionFileName(id);
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleDeleteSession = useCallback(
+    async (id: string) => {
+      await deleteSession(id);
+      await refreshSessions();
+    },
+    [refreshSessions],
+  );
+
   const face = vision.faceState;
+  const statusText = trackingLabel(
+    vision.status,
+    camera.ready,
+    camera.error,
+  );
+  const resolutionText =
+    camera.width && camera.height
+      ? `${camera.width}×${camera.height}`
+      : null;
 
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
@@ -336,7 +482,7 @@ export default function App() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {camera.ready && (
+          {inArena && camera.ready && (
             <OverlayToggles
               showHands={showHands}
               showFace={showFace}
@@ -346,104 +492,145 @@ export default function App() {
               onToggleHud={() => setShowHud((v) => !v)}
             />
           )}
-          <div className="hidden text-right text-[11px] text-bm-muted sm:block">
-            <p>
+          {inArena ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-full border border-bm-bg3 bg-black/50 px-3 py-1.5 font-mono text-[11px] text-bm-primary">
+                {pseudo || "????"}
+              </div>
+              <div className="rounded-full border border-bm-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-bm-muted">
+                {statusText}
+                {resolutionText ? ` · ${resolutionText}` : ""}
+              </div>
+            </div>
+          ) : (
+            <div className="hidden text-right text-[11px] text-bm-muted sm:block">
               Best{" "}
               <span className="text-white">{lifetime.bestScore}</span>
               {" · "}
               <span className="text-bm-brand">×{lifetime.bestCombo}</span>
-            </p>
-          </div>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-2 pb-2 md:px-4">
-        <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-bm-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
-          {!camera.ready && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-bm-bg1 p-8 text-center">
-              <div className="h-1 w-24 rounded-full bm-gradient-bg" />
-              <h2 className="font-display text-2xl text-white md:text-3xl">
-                PUMP. FACE. RECORD.
-              </h2>
-              <p className="max-w-md text-sm leading-relaxed text-bm-muted">
-                1 ou 2 mains pour fapper. Approche une main du visage pour
-                vaper / poppers. Yeux & bouche trackés en live.
-              </p>
-              {(camera.error || vision.error) && (
-                <p className="text-sm text-bm-live">
-                  {camera.error ?? vision.error}
-                </p>
-              )}
-              {!started && (
-                <p className="text-xs text-bm-muted">
-                  Desktop · localhost / HTTPS
-                </p>
-              )}
-            </div>
-          )}
-
-          <video
-            ref={videoRef}
-            className="absolute inset-0 h-full w-full object-contain bg-black"
-            playsInline
-            muted
-          />
-          <canvas
-            ref={overlayRef}
-            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-          />
-
-          {camera.ready && (
-            <ScoreHud
-              pumps={pumps}
-              score={score}
-              combo={combo}
-              multiplier={multiplier}
-              flash={flash}
-              trackingLabel={trackingLabel(
-                vision.status,
-                camera.ready,
-                camera.error,
-              )}
-              fapping={fapping}
-              cumActive={cumActive}
-              handCount={vision.handCount}
-              face={face}
-              resolution={
-                camera.width && camera.height
-                  ? `${camera.width}×${camera.height}`
-                  : null
-              }
+        {screen === "home" ? (
+          <>
+            <HomeScreen
+              sessions={sessions}
+              bestScore={lifetime.bestScore}
+              bestCombo={lifetime.bestCombo}
+              initialPseudo={pseudo}
+              onEnterArena={(p) => void handleEnterArena(p)}
+              onPlay={(id) => void handlePlaySession(id)}
+              onDelete={(id) => void handleDeleteSession(id)}
+              onDownload={(id) => void handleDownloadSession(id)}
             />
-          )}
+            {previewUrl && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                <div className="w-full max-w-3xl rounded-2xl border border-bm-bg3 bg-bm-bg1 p-3">
+                  <video
+                    src={previewUrl}
+                    controls
+                    autoPlay
+                    className="max-h-[70vh] w-full rounded-xl bg-black"
+                  />
+                  <button
+                    type="button"
+                    className="bm-btn bm-btn-ghost mt-3 w-full"
+                    onClick={() => {
+                      URL.revokeObjectURL(previewUrl);
+                      setPreviewUrl(null);
+                    }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-bm-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+            {!camera.ready && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-bm-bg1 p-8 text-center">
+                <div className="h-1 w-24 rounded-full bm-gradient-bg" />
+                <h2 className="font-display text-2xl text-white md:text-3xl">
+                  ACTIVATION CAM…
+                </h2>
+                {(camera.error || vision.error) && (
+                  <p className="text-sm text-bm-live">
+                    {camera.error ?? vision.error}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="bm-btn bm-btn-ghost"
+                  onClick={() => void handleExitArena()}
+                >
+                  Retour
+                </button>
+              </div>
+            )}
 
-          <CenterCountdown label={centerLabel} />
-          <MilestoneToast message={toast} />
+            <video
+              ref={videoRef}
+              className="absolute inset-0 h-full w-full object-contain bg-black"
+              playsInline
+              muted
+            />
+            <canvas
+              ref={overlayRef}
+              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+            />
 
-          {recorder.recording && (
-            <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-bm-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141] md:top-16">
-              <span className="live-dot h-2 w-2 rounded-full bg-white" />
-              {recorder.paused ? "PAUSE" : "REC"}
-            </div>
-          )}
+            {camera.ready && (
+              <>
+                <ExitArenaButton onExit={() => void handleExitArena()} />
+                <ScoreHud
+                  pumps={pumps}
+                  score={score}
+                  combo={combo}
+                  multiplier={multiplier}
+                  flash={flash}
+                  fapping={fapping}
+                  cumActive={cumActive}
+                  handCount={vision.handCount}
+                  face={face}
+                />
+              </>
+            )}
 
-          <ControlBar
-            camReady={camera.ready}
-            fapping={fapping}
-            recording={recorder.recording}
-            recPaused={recorder.paused}
-            cumActive={cumActive}
-            hasClip={Boolean(recorder.lastBlobUrl)}
-            onStartCam={handleStartCam}
-            onToggleFap={handleToggleFap}
-            onRecStart={handleRecStart}
-            onRecPause={handleRecPause}
-            onRecStop={handleRecStop}
-            onGonnaCum={() => void handleGonnaCum()}
-            onDownload={recorder.download}
-            onReset={handleReset}
-          />
-        </section>
+            <CenterCountdown label={centerLabel} />
+            <MilestoneToast message={toast} />
+
+            {recorder.recording && (
+              <div className="absolute right-3 top-14 z-20 flex items-center gap-2 rounded-full bg-bm-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141]">
+                <span className="live-dot h-2 w-2 rounded-full bg-white" />
+                {recorder.paused ? "PAUSE" : "REC"}
+              </div>
+            )}
+
+            {/* Raccourcis souris masqués si HUD cam actif */}
+            {!showHud && camera.ready && (
+              <ControlBar
+                camReady={camera.ready}
+                fapping={fapping}
+                recording={recorder.recording}
+                recPaused={recorder.paused}
+                cumActive={cumActive}
+                hasClip={Boolean(recorder.lastBlobUrl)}
+                onStartCam={() => void camera.start()}
+                onToggleFap={handleToggleFap}
+                onRecStart={handleRecStart}
+                onRecPause={handleRecPause}
+                onRecStop={() => void handleRecStop()}
+                onGonnaCum={() => void handleGonnaCum()}
+                onDownload={recorder.download}
+                onReset={handleReset}
+              />
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

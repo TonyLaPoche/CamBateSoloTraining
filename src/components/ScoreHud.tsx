@@ -6,12 +6,10 @@ type Props = {
   combo: number;
   multiplier: number;
   flash: boolean;
-  trackingLabel: string;
   fapping: boolean;
   cumActive: boolean;
   handCount: number;
   face: VisionFaceState;
-  resolution: string | null;
 };
 
 export function ScoreHud({
@@ -20,12 +18,10 @@ export function ScoreHud({
   combo,
   multiplier,
   flash,
-  trackingLabel,
   fapping,
   cumActive,
   handCount,
   face,
-  resolution,
 }: Props) {
   const eyesLabel =
     face.leftEyeOpen && face.rightEyeOpen
@@ -48,7 +44,7 @@ export function ScoreHud({
         : null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-4 pt-20 md:p-6 md:pt-24">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-4 pt-14 md:p-6 md:pt-16">
       <div
         className={`rounded-2xl border border-bm-bg3 bg-black/55 px-4 py-3 backdrop-blur-md ${flash ? "pump-flash" : ""}`}
       >
@@ -90,36 +86,30 @@ export function ScoreHud({
         </div>
       </div>
 
-      <div className="flex flex-col items-end gap-2">
-        <div className="rounded-full border border-bm-bg3 bg-black/55 px-3 py-1.5 text-xs font-medium text-bm-muted backdrop-blur-md">
-          {trackingLabel}
-          {resolution ? ` · ${resolution}` : ""}
-        </div>
-        <div className="rounded-2xl border border-bm-bg3 bg-black/55 px-3 py-2 text-right text-[11px] leading-relaxed text-bm-muted backdrop-blur-md">
-          <p>
-            <span className="text-bm-primary">{handCount}</span> main
-            {handCount === 1 ? "" : "s"}
-            {face.dualHand ? " · dual" : ""}
-          </p>
-          {face.seen ? (
-            <>
-              <p className="text-white">{eyesLabel}</p>
-              <p
-                className={
-                  face.tongueOut
-                    ? "text-bm-live"
-                    : face.mouthOpen
-                      ? "text-bm-primary"
-                      : "text-bm-brand"
-                }
-              >
-                {mouthLabel}
-              </p>
-            </>
-          ) : (
-            <p>Visage —</p>
-          )}
-        </div>
+      <div className="mr-16 rounded-2xl border border-bm-bg3 bg-black/55 px-3 py-2 text-right text-[11px] leading-relaxed text-bm-muted backdrop-blur-md">
+        <p>
+          <span className="text-bm-primary">{handCount}</span> main
+          {handCount === 1 ? "" : "s"}
+          {face.dualHand ? " · dual" : ""}
+        </p>
+        {face.seen ? (
+          <>
+            <p className="text-white">{eyesLabel}</p>
+            <p
+              className={
+                face.tongueOut
+                  ? "text-bm-live"
+                  : face.mouthOpen
+                    ? "text-bm-primary"
+                    : "text-bm-brand"
+              }
+            >
+              {mouthLabel}
+            </p>
+          </>
+        ) : (
+          <p>Visage —</p>
+        )}
       </div>
     </div>
   );

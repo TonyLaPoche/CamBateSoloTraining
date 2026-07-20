@@ -1,0 +1,147 @@
+import { useMemo, useState } from "react";
+import type { SavedSessionMeta } from "@/lib/sessionLibrary";
+import {
+  formatDuration,
+  isValidPseudo,
+  normalizePseudo,
+} from "@/lib/sessionLibrary";
+
+type Props = {
+  sessions: SavedSessionMeta[];
+  bestScore: number;
+  bestCombo: number;
+  initialPseudo: string;
+  onEnterArena: (pseudo: string) => void;
+  onPlay: (id: string) => void;
+  onDelete: (id: string) => void;
+  onDownload: (id: string) => void;
+};
+
+export function HomeScreen({
+  sessions,
+  bestScore,
+  bestCombo,
+  initialPseudo,
+  onEnterArena,
+  onPlay,
+  onDelete,
+  onDownload,
+}: Props) {
+  const [pseudo, setPseudo] = useState(initialPseudo);
+  const normalized = useMemo(() => normalizePseudo(pseudo), [pseudo]);
+  const valid = isValidPseudo(normalized);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 py-2">
+      <section className="rounded-2xl border border-bm-bg3 bg-bm-bg1 p-6 md:p-8">
+        <div className="h-1 w-20 rounded-full bm-gradient-bg" />
+        <h2 className="mt-4 font-display text-2xl text-white md:text-4xl">
+          CAMBATE SOLO
+        </h2>
+        <p className="mt-2 max-w-lg text-sm text-bm-muted">
+          Choisis un pseudo (4–5 lettres), puis entre dans l’arène. Tes scores
+          seront sauvegardés au format{" "}
+          <span className="text-bm-primary">AABB-20-07-2026-22:39</span>.
+        </p>
+
+        <label className="mt-6 block">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-bm-brand">
+            Pseudo
+          </span>
+          <input
+            type="text"
+            value={pseudo}
+            maxLength={5}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="AABB"
+            onChange={(e) => setPseudo(normalizePseudo(e.target.value))}
+            className="mt-2 w-full max-w-xs rounded-xl border border-bm-bg3 bg-black/50 px-4 py-3 font-display text-2xl tracking-[0.2em] text-bm-primary outline-none placeholder:text-bm-muted focus:border-bm-primary"
+          />
+          <span className="mt-2 block text-xs text-bm-muted">
+            {normalized.length}/5 · lettres uniquement
+            {!valid && normalized.length > 0 ? " · min. 4 lettres" : ""}
+          </span>
+        </label>
+
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-bm-muted">
+          <span>
+            Best score <strong className="text-white">{bestScore}</strong>
+          </span>
+          <span>
+            Best combo <strong className="text-bm-brand">×{bestCombo}</strong>
+          </span>
+          <span>
+            Sessions <strong className="text-white">{sessions.length}</strong>
+          </span>
+        </div>
+        <button
+          type="button"
+          className="bm-btn bm-btn-primary mt-6"
+          disabled={!valid}
+          onClick={() => onEnterArena(normalized)}
+        >
+          Entrer dans l’arène
+        </button>
+      </section>
+
+      <section className="rounded-2xl border border-bm-bg3 bg-bm-bg1 p-4 md:p-6">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-bm-brand">
+          Sessions enregistrées
+        </h3>
+        {sessions.length === 0 ? (
+          <p className="mt-4 text-sm text-bm-muted">
+            Aucune session pour l’instant. Rec pendant un fap, puis Exit —
+            le clip apparaîtra ici.
+          </p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {sessions.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-bm-bg3 bg-black/40 px-4 py-3"
+              >
+                <div>
+                  <p className="font-mono text-sm text-bm-primary">{s.id}</p>
+                  <p className="mt-1 text-xs text-bm-muted">
+                    {s.pseudo ? `${s.pseudo} · ` : ""}
+                    {s.pumps} pumps · score {s.score} · combo ×{s.bestCombo} ·{" "}
+                    {formatDuration(s.durationMs)}
+                    {s.hasVideo ? " · vidéo" : " · stats"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {s.hasVideo && (
+                    <>
+                      <button
+                        type="button"
+                        className="bm-btn bm-btn-primary !px-3 !py-1.5 !text-xs"
+                        onClick={() => onPlay(s.id)}
+                      >
+                        Play
+                      </button>
+                      <button
+                        type="button"
+                        className="bm-btn bm-btn-ghost !px-3 !py-1.5 !text-xs"
+                        onClick={() => onDownload(s.id)}
+                      >
+                        DL
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    className="bm-btn bm-btn-ghost !px-3 !py-1.5 !text-xs"
+                    onClick={() => onDelete(s.id)}
+                  >
+                    Suppr
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

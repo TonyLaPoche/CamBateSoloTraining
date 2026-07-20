@@ -31,20 +31,25 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
   const chunksRef = useRef<Blob[]>([]);
   const composeRafRef = useRef<number>(0);
   const pausedRef = useRef(false);
+  const lastBlobRef = useRef<Blob | null>(null);
+  const stopResolveRef = useRef<((blob: Blob | null) => void) | null>(null);
 
   const stopCompose = useCallback(() => {
     if (composeRafRef.current) cancelAnimationFrame(composeRafRef.current);
     composeRafRef.current = 0;
   }, []);
 
+  const clearClip = useCallback(() => {
+    if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+    setLastBlobUrl(null);
+    lastBlobRef.current = null;
+  }, [lastBlobUrl]);
+
   const start = useCallback(async () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
 
-    if (lastBlobUrl) {
-      URL.revokeObjectURL(lastBlobUrl);
-      setLastBlobUrl(null);
-    }
+    clearClip();
 
     const w = video.videoWidth || 1280;
     const h = video.videoHeight || 720;
@@ -108,18 +113,21 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
       const blob = new Blob(chunksRef.current, {
         type: mimeType ?? "video/webm",
       });
+      lastBlobRef.current = blob;
       setLastBlobUrl(URL.createObjectURL(blob));
       setRecording(false);
       pausedRef.current = false;
       setPaused(false);
       recorderRef.current = null;
+      stopResolveRef.current?.(blob);
+      stopResolveRef.current = null;
     };
     recorder.start(250);
     recorderRef.current = recorder;
     setRecording(true);
     pausedRef.current = false;
     setPaused(false);
-  }, [videoRef, overlayRef, getHud, lastBlobUrl, stopCompose]);
+  }, [videoRef, overlayRef, getHud, clearClip, stopCompose]);
 
   const pause = useCallback(() => {
     const recorder = recorderRef.current;
@@ -137,16 +145,19 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
     setPaused(false);
   }, []);
 
-  const stop = useCallback(() => {
+  const stop = useCallback((): Promise<Blob | null> => {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === "inactive") {
       stopCompose();
       setRecording(false);
       pausedRef.current = false;
       setPaused(false);
-      return;
+      return Promise.resolve(lastBlobRef.current);
     }
-    recorder.stop();
+    return new Promise((resolve) => {
+      stopResolveRef.current = resolve;
+      recorder.stop();
+    });
   }, [stopCompose]);
 
   const download = useCallback(() => {
@@ -161,10 +172,12 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
     recording,
     paused,
     lastBlobUrl,
+    lastBlobRef,
     start,
     pause,
     resume,
     stop,
     download,
+    clearClip,
   };
 }
