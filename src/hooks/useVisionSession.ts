@@ -133,6 +133,7 @@ export function useVisionSession({
   const rafRef = useRef(0);
   const lastTsRef = useRef(-1);
   const statusRef = useRef<VisionStatus>("idle");
+  const statusDebounceRef = useRef(0);
   const handCountRef = useRef(0);
   const faceStateKeyRef = useRef("");
 
@@ -149,6 +150,23 @@ export function useVisionSession({
 
   const setStatusSafe = useCallback((next: VisionStatus) => {
     if (statusRef.current === next) return;
+    // Évite le jitter tracking ↔ no-hand (reflow header)
+    if (
+      (statusRef.current === "tracking" || statusRef.current === "no-hand") &&
+      (next === "tracking" || next === "no-hand")
+    ) {
+      if (statusDebounceRef.current) window.clearTimeout(statusDebounceRef.current);
+      statusDebounceRef.current = window.setTimeout(() => {
+        if (statusRef.current === next) return;
+        statusRef.current = next;
+        setStatus(next);
+      }, 280);
+      return;
+    }
+    if (statusDebounceRef.current) {
+      window.clearTimeout(statusDebounceRef.current);
+      statusDebounceRef.current = 0;
+    }
     statusRef.current = next;
     setStatus(next);
   }, []);
@@ -210,6 +228,7 @@ export function useVisionSession({
     return () => {
       cancelled = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (statusDebounceRef.current) window.clearTimeout(statusDebounceRef.current);
       handRef.current?.close();
       faceRef.current?.close();
       handRef.current = null;

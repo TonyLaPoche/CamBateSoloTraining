@@ -41,26 +41,15 @@ function sleep(ms: number) {
   });
 }
 
-function trackingLabel(
+function trackingDotClass(
   status: string,
   camReady: boolean,
   camError: string | null,
 ): string {
-  if (camError) return "Caméra bloquée";
-  if (!camReady) return "Caméra off";
-  switch (status) {
-    case "loading":
-      return "Chargement vision…";
-    case "ready":
-    case "tracking":
-      return "Tracking OK";
-    case "no-hand":
-      return "Montre tes mains";
-    case "error":
-      return "Tracking KO";
-    default:
-      return "En attente";
-  }
+  if (camError || status === "error") return "bg-cbs-live";
+  if (!camReady || status === "loading" || status === "idle") return "bg-cbs-muted";
+  if (status === "tracking" || status === "ready") return "bg-cbs-primary";
+  return "bg-cbs-accent"; // no-hand
 }
 
 export default function App() {
@@ -460,28 +449,36 @@ export default function App() {
   );
 
   const face = vision.faceState;
-  const statusText = trackingLabel(
-    vision.status,
-    camera.ready,
-    camera.error,
-  );
+  const statusTitle = camera.error
+    ? camera.error
+    : !camera.ready
+      ? "Caméra off"
+      : vision.status === "tracking" || vision.status === "ready"
+        ? "Tracking OK"
+        : vision.status === "no-hand"
+          ? "Montre tes mains"
+          : vision.status === "loading"
+            ? "Chargement…"
+            : vision.status === "error"
+              ? "Tracking KO"
+              : "En attente";
   const resolutionText =
     camera.width && camera.height
       ? `${camera.width}×${camera.height}`
-      : null;
+      : "—×—";
 
   return (
     <div className="flex h-dvh max-h-dvh flex-col overflow-hidden">
-      <header className="relative z-10 flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2 md:px-6 md:py-3">
-        <div>
+      <header className="relative z-10 flex h-14 shrink-0 items-center justify-between gap-3 px-3 md:px-6">
+        <div className="min-w-0 shrink">
           <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cbs-accent">
             Local only
           </p>
-          <h1 className="font-display text-base text-white md:text-lg">
+          <h1 className="font-display truncate text-base text-white md:text-lg">
             CAMBATE <span className="cbs-gradient-text">SOLO</span>
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           {inArena && camera.ready && (
             <OverlayToggles
               showHands={showHands}
@@ -493,15 +490,26 @@ export default function App() {
             />
           )}
           {inArena ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 font-mono text-[11px] text-cbs-primary">
+            <>
+              <div className="w-14 shrink-0 truncate rounded-full border border-cbs-bg3 bg-black/50 px-2 py-1.5 text-center font-mono text-[11px] text-cbs-primary">
                 {pseudo || "????"}
               </div>
-              <div className="rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-cbs-muted">
-                {statusText}
-                {resolutionText ? ` · ${resolutionText}` : ""}
+              <div
+                className="flex w-[9.5rem] shrink-0 items-center gap-2 rounded-full border border-cbs-bg3 bg-black/50 px-3 py-1.5 text-[11px] text-cbs-muted"
+                title={statusTitle}
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${trackingDotClass(
+                    vision.status,
+                    camera.ready,
+                    camera.error,
+                  )}`}
+                />
+                <span className="truncate font-mono tabular-nums">
+                  {resolutionText}
+                </span>
               </div>
-            </div>
+            </>
           ) : (
             <div className="hidden text-right text-[11px] text-cbs-muted sm:block">
               Best{" "}
