@@ -5,6 +5,7 @@ import { ExitArenaButton } from "@/components/ExitArenaButton";
 import { HomeScreen } from "@/components/HomeScreen";
 import { MilestoneToast } from "@/components/MilestoneToast";
 import { OverlayToggles } from "@/components/OverlayToggles";
+import { PwaInstallHint } from "@/components/PwaInstallHint";
 import { ScoreHud } from "@/components/ScoreHud";
 import { useCamera } from "@/hooks/useCamera";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
@@ -662,6 +663,7 @@ export default function App() {
           </section>
         )}
       </main>
+      {screen === "home" && <PwaInstallHint />}
     </div>
   );
 }

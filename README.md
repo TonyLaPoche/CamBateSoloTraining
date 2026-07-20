@@ -20,17 +20,28 @@ npm run dev
 Ouvre `http://localhost:5173/CamBateSoloTraining/` (le `base` Vite est celui de GitHub Pages).  
 La caméra exige **localhost** ou **HTTPS**.
 
+## PWA
+
+L’app est installable (écran d’accueil, mode `standalone` plein écran).
+
+- **Android / Chrome desktop** : bandeau « Installer » ou menu ⋮ → Installer l’application
+- **iPhone / iPad** : Safari → Partager → **Sur l’écran d’accueil**
+
+Le service worker met en cache l’app + les modèles MediaPipe (démarrage plus rapide au 2ᵉ lancement).
+
 ## Déploiement GitHub Pages
 
-Le workflow `.github/workflows/deploy-pages.yml` build et publie `dist/` à chaque push sur `main`.
+Le workflow build `dist/` et le pousse sur la branche **`gh-pages`** à chaque push sur `main`.
 
-**Une fois :**
+**Activation (une fois) — c’est ce qui manquait pour le 404 :**
 
-1. Repo → **Settings** → **Pages**
-2. Source : **GitHub Actions**
-3. Push sur `main` (ou lance le workflow manuellement)
+1. Ouvre [Settings → Pages](https://github.com/TonyLaPoche/CamBateSoloTraining/settings/pages)
+2. **Build and deployment → Source** : **Deploy from a branch**
+3. **Branch** : `gh-pages` / `/ (root)` → Save  
+   *(si `gh-pages` n’existe pas encore : push ce workflow, attends le run vert, puis reviens choisir la branche)*
+4. Relance le workflow si besoin : Actions → Deploy GitHub Pages → Run workflow
 
-URL : `https://<user>.github.io/CamBateSoloTraining/`
+URL : https://tonylapoche.github.io/CamBateSoloTraining/
 
 ## Fonctionnalités
 
