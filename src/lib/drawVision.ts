@@ -219,23 +219,29 @@ export function drawHudButtons(
     const bw = b.w * w;
     const bh = b.h * h;
     const active = hoverId === b.id;
+    const radius = Math.min(18, bh * 0.35);
 
     ctx.fillStyle = active ? "rgba(10,10,10,0.75)" : "rgba(10,10,10,0.55)";
-    roundRect(ctx, x, y, bw, bh, 14);
+    roundRect(ctx, x, y, bw, bh, radius);
     ctx.fill();
     ctx.strokeStyle = b.accent;
     ctx.lineWidth = active ? 2.5 : 1.5;
-    roundRect(ctx, x, y, bw, bh, 14);
+    roundRect(ctx, x, y, bw, bh, radius);
     ctx.stroke();
 
     if (active && progress > 0) {
       ctx.fillStyle = `${b.accent}55`;
-      roundRect(ctx, x, y, bw * progress, bh, 14);
+      roundRect(ctx, x, y, bw * progress, bh, radius);
       ctx.fill();
     }
 
+    // Taille proportionnelle au bouton (lisible en 1080p / 4K)
+    const byHeight = bh * 0.42;
+    const byWidth = (bw * 0.92) / Math.max(4, b.label.length * 0.58);
+    const fontSize = Math.max(18, Math.min(byHeight, byWidth, 36));
+
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "700 12px Mazzard, system-ui, sans-serif";
+    ctx.font = `700 ${fontSize}px Mazzard, system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(b.label, x + bw / 2, y + bh / 2);

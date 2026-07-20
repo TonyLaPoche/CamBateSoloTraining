@@ -27,8 +27,8 @@ export type HudRuntimeState = {
 
 /** Boutons en haut de la cam — 3 slots */
 export function layoutHudButtons(state: HudRuntimeState): HudButton[] {
-  const y = 0.035;
-  const h = 0.07;
+  const y = 0.028;
+  const h = 0.09;
   const buttons: HudButton[] = [
     {
       id: "toggle-fap",
