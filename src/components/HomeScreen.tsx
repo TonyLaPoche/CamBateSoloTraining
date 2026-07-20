@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { MobilePermissionsCard } from "@/components/MobilePermissionsCard";
 import type { SavedSessionMeta } from "@/lib/sessionLibrary";
 import {
   formatDuration,
@@ -86,6 +87,8 @@ export function HomeScreen({
           Entrer dans l’arène
         </button>
       </section>
+
+      <MobilePermissionsCard />
 
       <section className="rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-3 sm:p-4 md:p-6">
         <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cbs-accent sm:text-xs">

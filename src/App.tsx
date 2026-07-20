@@ -70,8 +70,8 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [centerLabel, setCenterLabel] = useState<string | null>(null);
   const [lifetime, setLifetime] = useState(loadStats);
-  const [showHands, setShowHands] = useState(true);
-  const [showFace, setShowFace] = useState(true);
+  const [showHands, setShowHands] = useState(false);
+  const [showFace, setShowFace] = useState(false);
   const [showHud, setShowHud] = useState(true);
   const [sessionPeakCombo, setSessionPeakCombo] = useState(0);
   /** Mobile : HUD hors flux cam (pas de superposition) */

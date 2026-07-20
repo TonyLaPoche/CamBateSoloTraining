@@ -5,16 +5,16 @@ export function isMobilePerfProfile(): boolean {
   return window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
 }
 
-/** Contraintes cam — éviter 4K qui tue MediaPipe sur tel. */
+/** Contraintes cam — mobile : résolution basse pour MediaPipe fluide. */
 export function cameraConstraints(
   mobile: boolean,
 ): MediaTrackConstraints {
   if (mobile) {
     return {
       facingMode: "user",
-      width: { ideal: 960, max: 1280 },
-      height: { ideal: 540, max: 720 },
-      frameRate: { ideal: 30, max: 30 },
+      width: { ideal: 640, max: 960 },
+      height: { ideal: 480, max: 540 },
+      frameRate: { ideal: 24, max: 30 },
     };
   }
   return {
@@ -43,11 +43,11 @@ export type VisionPerfProfile = {
 export function visionPerfProfile(mobile: boolean): VisionPerfProfile {
   if (mobile) {
     return {
-      // ~30 Hz mains — assez pour fap rapide, charge OK
-      handIntervalMs: 33,
-      // Visage / bonus : 12 Hz suffisent
-      faceIntervalMs: 80,
-      maxCanvasWidth: 720,
+      // ~25 Hz mains — fap rapide OK, charge maîtrisée
+      handIntervalMs: 40,
+      // Bonus visage : ~8 Hz
+      faceIntervalMs: 120,
+      maxCanvasWidth: 480,
       liteDraw: true,
       handDetection: 0.4,
       handPresence: 0.4,
@@ -56,8 +56,8 @@ export function visionPerfProfile(mobile: boolean): VisionPerfProfile {
   }
   return {
     handIntervalMs: 0,
-    faceIntervalMs: 0,
-    maxCanvasWidth: 1920,
+    faceIntervalMs: 33,
+    maxCanvasWidth: 1280,
     liteDraw: false,
     handDetection: 0.5,
     handPresence: 0.5,

@@ -326,9 +326,15 @@ export function useVisionSession({
         !video.paused
       ) {
         const now = performance.now();
+        const handInterval = sess.fapping
+          ? profile.handIntervalMs
+          : Math.max(profile.handIntervalMs, profile.liteDraw ? 66 : 0);
+        const faceInterval = ov.showFace
+          ? profile.faceIntervalMs
+          : Math.max(profile.faceIntervalMs, profile.liteDraw ? 160 : 80);
 
         // Inférence mains prioritaires (tracking fap)
-        if (now - lastHandInferRef.current >= profile.handIntervalMs) {
+        if (now - lastHandInferRef.current >= handInterval) {
           try {
             lastHandResultRef.current = hands.detectForVideo(video, now);
             lastHandInferRef.current = now;
@@ -338,9 +344,8 @@ export function useVisionSession({
         }
 
         // Visage moins fréquent (bonus yeux/bouche)
-        if (now - lastFaceInferRef.current >= profile.faceIntervalMs) {
+        if (now - lastFaceInferRef.current >= faceInterval) {
           try {
-            // Timestamp distinct obligatoire pour MediaPipe VIDEO
             const faceTs = now + 0.001;
             lastFaceResultRef.current = face.detectForVideo(video, faceTs);
             lastFaceInferRef.current = now;
@@ -356,9 +361,145 @@ export function useVisionSession({
           return;
         }
 
-        const videoW = video.videoWidth || canvas.clientWidth;
-        const videoH = video.videoHeight || canvas.clientHeight;
+        const needDraw = ov.showHands || ov.showFace || ov.showHud;
+        const videoW = video.videoWidth || 640;
+        const videoH = video.videoHeight || 480;
         const { w, h } = fitCanvasSize(videoW, videoH, profile.maxCanvasWidth);
+
+        const faceLm = faceResult?.faceLandmarks[0] ?? null;
+        const blends = faceResult?.faceBlendshapes?.[0]?.categories;
+        const expr = parseFaceExpression(faceLm, blends);
+        const zones = faceLm ? faceZones(faceLm) : null;
+
+        const tracked: TrackedHand[] = handResult.landmarks.map(
+          (landmarks, i) => {
+            const handedness = handednessLabel(handResult.handednesses[i]);
+            return {
+              landmarks,
+              handedness,
+              key: `${handedness}-${i}`,
+            };
+          },
+        );
+
+        if (handCountRef.current !== tracked.length) {
+          handCountRef.current = tracked.length;
+          setHandCount(tracked.length);
+        }
+
+        const dualHand = tracked.length >= 2;
+
+        let faceAction: FaceHandAction = "none";
+        const pumpHands: TrackedHand[] = [];
+        const faceHands: TrackedHand[] = [];
+
+        for (const hand of tracked) {
+          const palm = palmCenter(hand.landmarks);
+          const action = classifyFaceHand(palm, zones);
+          if (action !== "none") {
+            faceHands.push(hand);
+            if (faceAction === "none" || action === "poppers") {
+              faceAction = action;
+            }
+          } else {
+            pumpHands.push(hand);
+          }
+        }
+
+        let handsJoined = false;
+        if (pumpHands.length >= 2) {
+          const a = indexMetacarpalPoint(pumpHands[0]!.landmarks);
+          const b = indexMetacarpalPoint(pumpHands[1]!.landmarks);
+          handsJoined = dist(a, b) <= HANDS_JOINED_DIST;
+        }
+
+        const pumpOpts = { fast: fastPumpRef.current };
+
+        if (sess.fapping) {
+          const activePumps =
+            pumpHands.length > 0
+              ? pumpHands
+              : tracked.length === 1 && faceAction === "none"
+                ? tracked
+                : pumpHands;
+
+          if (activePumps.length >= 2) {
+            const pa = indexMetacarpalPoint(activePumps[0]!.landmarks);
+            const pb = indexMetacarpalPoint(activePumps[1]!.landmarks);
+            const joined = dist(pa, pb) <= HANDS_JOINED_DIST;
+            const y = joined ? (pa.y + pb.y) / 2 : pa.y;
+            const x = joined ? (pa.x + pb.x) / 2 : pa.x;
+            let det = pumpDetectors.current.get("pump-pair");
+            if (!det) {
+              det = createPumpDetector();
+              pumpDetectors.current.set("pump-pair", det);
+            }
+            const stepped = stepPumpDetector(det, y, x, now, pumpOpts);
+            pumpDetectors.current.set("pump-pair", stepped.state);
+            if (stepped.pumped) onPumpRef.current();
+          } else if (activePumps.length === 1) {
+            const hand = activePumps[0]!;
+            let det = pumpDetectors.current.get(hand.key);
+            if (!det) {
+              det = createPumpDetector();
+              pumpDetectors.current.set(hand.key, det);
+            }
+            const mcp = indexMetacarpalPoint(hand.landmarks);
+            const stepped = stepPumpDetector(
+              det,
+              mcp.y,
+              mcp.x,
+              now,
+              pumpOpts,
+            );
+            pumpDetectors.current.set(hand.key, stepped.state);
+            if (stepped.pumped) onPumpRef.current();
+          }
+        }
+
+        if (
+          sess.fapping &&
+          faceAction !== "none" &&
+          now - lastFaceTickRef.current > 400
+        ) {
+          lastFaceTickRef.current = now;
+          onFaceTickRef.current(faceAction);
+        }
+
+        const nextFace: VisionFaceState = {
+          ...expr,
+          seen: Boolean(faceLm),
+          faceAction,
+          dualHand,
+          handsJoined,
+        };
+        const key = [
+          nextFace.seen,
+          nextFace.leftEyeOpen,
+          nextFace.rightEyeOpen,
+          nextFace.mouthOpen,
+          nextFace.tongueOut,
+          nextFace.faceAction,
+          nextFace.dualHand,
+          nextFace.handsJoined,
+        ].join("|");
+        if (faceStateKeyRef.current !== key) {
+          faceStateKeyRef.current = key;
+          setFaceState(nextFace);
+        }
+
+        setStatusSafe(tracked.length > 0 ? "tracking" : "no-hand");
+
+        // Pas d’overlay → pas de dessin canvas (gros gain mobile)
+        if (!needDraw) {
+          if (canvas.width > 0 || canvas.height > 0) {
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+
         if (canvas.width !== w || canvas.height !== h) {
           canvas.width = w;
           canvas.height = h;
@@ -368,129 +509,6 @@ export function useVisionSession({
         if (ctx) {
           clearCanvas(ctx, w, h);
 
-          const faceLm = faceResult?.faceLandmarks[0] ?? null;
-          const blends = faceResult?.faceBlendshapes?.[0]?.categories;
-          const expr = parseFaceExpression(faceLm, blends);
-          const zones = faceLm ? faceZones(faceLm) : null;
-
-          const tracked: TrackedHand[] = handResult.landmarks.map(
-            (landmarks, i) => {
-              const handedness = handednessLabel(handResult.handednesses[i]);
-              return {
-                landmarks,
-                handedness,
-                key: `${handedness}-${i}`,
-              };
-            },
-          );
-
-          if (handCountRef.current !== tracked.length) {
-            handCountRef.current = tracked.length;
-            setHandCount(tracked.length);
-          }
-
-          const dualHand = tracked.length >= 2;
-
-          let faceAction: FaceHandAction = "none";
-          const pumpHands: TrackedHand[] = [];
-          const faceHands: TrackedHand[] = [];
-
-          for (const hand of tracked) {
-            const palm = palmCenter(hand.landmarks);
-            const action = classifyFaceHand(palm, zones);
-            if (action !== "none") {
-              faceHands.push(hand);
-              if (faceAction === "none" || action === "poppers") {
-                faceAction = action;
-              }
-            } else {
-              pumpHands.push(hand);
-            }
-          }
-
-          let handsJoined = false;
-          if (pumpHands.length >= 2) {
-            const a = indexMetacarpalPoint(pumpHands[0]!.landmarks);
-            const b = indexMetacarpalPoint(pumpHands[1]!.landmarks);
-            handsJoined = dist(a, b) <= HANDS_JOINED_DIST;
-          }
-
-          const pumpOpts = { fast: fastPumpRef.current };
-
-          if (sess.fapping) {
-            const activePumps =
-              pumpHands.length > 0
-                ? pumpHands
-                : tracked.length === 1 && faceAction === "none"
-                  ? tracked
-                  : pumpHands;
-
-            if (activePumps.length >= 2) {
-              const pa = indexMetacarpalPoint(activePumps[0]!.landmarks);
-              const pb = indexMetacarpalPoint(activePumps[1]!.landmarks);
-              const joined = dist(pa, pb) <= HANDS_JOINED_DIST;
-              const y = joined ? (pa.y + pb.y) / 2 : pa.y;
-              const x = joined ? (pa.x + pb.x) / 2 : pa.x;
-              let det = pumpDetectors.current.get("pump-pair");
-              if (!det) {
-                det = createPumpDetector();
-                pumpDetectors.current.set("pump-pair", det);
-              }
-              const stepped = stepPumpDetector(det, y, x, now, pumpOpts);
-              pumpDetectors.current.set("pump-pair", stepped.state);
-              if (stepped.pumped) onPumpRef.current();
-            } else if (activePumps.length === 1) {
-              const hand = activePumps[0]!;
-              let det = pumpDetectors.current.get(hand.key);
-              if (!det) {
-                det = createPumpDetector();
-                pumpDetectors.current.set(hand.key, det);
-              }
-              const mcp = indexMetacarpalPoint(hand.landmarks);
-              const stepped = stepPumpDetector(
-                det,
-                mcp.y,
-                mcp.x,
-                now,
-                pumpOpts,
-              );
-              pumpDetectors.current.set(hand.key, stepped.state);
-              if (stepped.pumped) onPumpRef.current();
-            }
-          }
-
-          if (
-            sess.fapping &&
-            faceAction !== "none" &&
-            now - lastFaceTickRef.current > 400
-          ) {
-            lastFaceTickRef.current = now;
-            onFaceTickRef.current(faceAction);
-          }
-
-          const nextFace: VisionFaceState = {
-            ...expr,
-            seen: Boolean(faceLm),
-            faceAction,
-            dualHand,
-            handsJoined,
-          };
-          const key = [
-            nextFace.seen,
-            nextFace.leftEyeOpen,
-            nextFace.rightEyeOpen,
-            nextFace.mouthOpen,
-            nextFace.tongueOut,
-            nextFace.faceAction,
-            nextFace.dualHand,
-            nextFace.handsJoined,
-          ].join("|");
-          if (faceStateKeyRef.current !== key) {
-            faceStateKeyRef.current = key;
-            setFaceState(nextFace);
-          }
-
-          // Dessin visage coûteux — skip en mode mobile lite (bonus toujours calculés)
           if (ov.showFace && faceLm && !profile.liteDraw) {
             drawFaceMask(ctx, faceLm, w, h, expr);
           }
@@ -501,9 +519,11 @@ export function useVisionSession({
             paused: sess.recPaused,
             cumActive: sess.cumActive,
           };
-          const buttons = layoutHudButtons(hudState, {
-            compact: h > w || w < 700,
-          });
+          const buttons = ov.showHud
+            ? layoutHudButtons(hudState, {
+                compact: h > w || w < 700,
+              })
+            : [];
           const tipHand = tracked[0];
           const tipForHud = tipHand ? indexTip(tipHand.landmarks) : null;
           const interact =
@@ -512,25 +532,29 @@ export function useVisionSession({
             ? indexTip(interact.landmarks)
             : tipForHud;
           const pinching = interact ? isPinching(interact.landmarks) : false;
-          const hit = interactTip ? hitHudButton(buttons, interactTip) : null;
+          const hit =
+            ov.showHud && interactTip
+              ? hitHudButton(buttons, interactTip)
+              : null;
           const requiredMs = hit
             ? dwellMsFor(hit.id, hudState)
             : HUD_DWELL_DEFAULT_MS;
-          const dwellStep = stepDwell(
-            dwellRef.current,
-            hit,
-            pinching && Boolean(hit),
-            now,
-            requiredMs,
-            hit ? allowPinchInstant(hit.id) : false,
-          );
-          dwellRef.current = dwellStep.dwell;
-          if (dwellStep.fired && now - lastFireRef.current > 700) {
-            lastFireRef.current = now;
-            onHudRef.current(dwellStep.fired);
-          }
 
           if (ov.showHud) {
+            const dwellStep = stepDwell(
+              dwellRef.current,
+              hit,
+              pinching && Boolean(hit),
+              now,
+              requiredMs,
+              hit ? allowPinchInstant(hit.id) : false,
+            );
+            dwellRef.current = dwellStep.dwell;
+            if (dwellStep.fired && now - lastFireRef.current > 700) {
+              lastFireRef.current = now;
+              onHudRef.current(dwellStep.fired);
+            }
+
             drawHudButtons(
               ctx,
               buttons,
@@ -574,11 +598,13 @@ export function useVisionSession({
             }
           }
 
-          if (interactTip && (ov.showHands || ov.showHud) && !profile.liteDraw) {
+          if (
+            interactTip &&
+            (ov.showHands || ov.showHud) &&
+            !profile.liteDraw
+          ) {
             drawCursor(ctx, interactTip, w, h, "#4D5DFF");
           }
-
-          setStatusSafe(tracked.length > 0 ? "tracking" : "no-hand");
         }
       }
 
