@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Mazzard";
+  src: url("/fonts/MazzardH-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard";
+  src: url("/fonts/MazzardH-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard";
+  src: url("/fonts/MazzardH-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard";
+  src: url("/fonts/MazzardH-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PPMonumentExtended";
+  src: url("/fonts/PPMonumentExtended-Black.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --bm-primary: #fbff4d;
+  --bm-secondary: #4d5dff;
+  --bm-brand: #af9eff;
+  --bm-muted: #73716d;
+  --bm-bg1: #151515;
+  --bm-bg2: #1a1a1a;
+  --bm-bg3: #262626;
+  --bm-live: #f41141;
+  --bm-gradient: linear-gradient(90deg, #ff0107 0%, #d043fd 100%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-bm-primary: var(--bm-primary);
+  --color-bm-secondary: var(--bm-secondary);
+  --color-bm-brand: var(--bm-brand);
+  --color-bm-muted: var(--bm-muted);
+  --color-bm-bg1: var(--bm-bg1);
+  --color-bm-bg2: var(--bm-bg2);
+  --color-bm-bg3: var(--bm-bg3);
+  --color-bm-live: var(--bm-live);
+  --font-sans: "Mazzard", system-ui, sans-serif;
+  --font-display: "PPMonumentExtended", "Mazzard", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Mazzard", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(208, 67, 253, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(77, 93, 255, 0.08), transparent),
+    #0a0a0a;
+}
+
+.font-display {
+  font-family: "PPMonumentExtended", "Mazzard", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.bm-gradient-text {
+  background: var(--bm-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bm-gradient-bg {
+  background: var(--bm-gradient);
+}
+
+.bm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.85rem 1.5rem;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.bm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bm-btn-primary {
+  background: #fbff4d;
+  color: #0a0a0a;
+}
+
+.bm-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 24px rgba(251, 255, 77, 0.35);
+}
+
+.bm-btn-ghost {
+  background: #262626;
+  color: #ffffff;
+  border: 1px solid #333333;
+}
+
+.bm-btn-danger {
+  background: #f41141;
+  color: #ffffff;
+  box-shadow: 0 0 11.87px 0 #f41141;
+}
+
+.pump-flash {
+  animation: pump-pop 0.28s ease-out;
+}
+
+@keyframes pump-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: pulse-live 1.2s ease-in-out infinite;
+}
+
+.milestone-toast {
+  animation: toast-in 0.35s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
