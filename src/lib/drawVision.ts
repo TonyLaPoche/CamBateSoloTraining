@@ -24,6 +24,7 @@ export function drawHandSkeleton(
   h: number,
   color: string,
   roleLabel?: string,
+  highlightMcp = false,
 ) {
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -42,6 +43,33 @@ export function drawHandSkeleton(
     ctx.arc(p.x * w, p.y * h, 3.2, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // Zone métacarpe index (5–6–9) — point suivi pour le compteur
+  if (highlightMcp) {
+    const mcp = landmarks[5];
+    const pip = landmarks[6];
+    const mid = landmarks[9];
+    if (mcp) {
+      ctx.beginPath();
+      ctx.arc(mcp.x * w, mcp.y * h, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = "#FBFF4D";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(251,255,77,0.35)";
+      ctx.fill();
+    }
+    if (mcp && pip) {
+      ctx.beginPath();
+      ctx.moveTo(mcp.x * w, mcp.y * h);
+      ctx.lineTo(pip.x * w, pip.y * h);
+      if (mid) ctx.lineTo(mid.x * w, mid.y * h);
+      ctx.closePath();
+      ctx.strokeStyle = "rgba(251,255,77,0.85)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
   if (roleLabel) {
     const tip = landmarks[8] ?? landmarks[0];
     if (tip) {

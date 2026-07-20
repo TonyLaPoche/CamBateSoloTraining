@@ -36,6 +36,7 @@ import {
 } from "@/lib/handGeometry";
 import {
   createPumpDetector,
+  indexMetacarpalPoint,
   stepPumpDetector,
   type PumpDetectorState,
 } from "@/lib/pumpDetector";
@@ -310,14 +311,13 @@ export function useVisionSession({
                   det = createPumpDetector();
                   pumpDetectors.current.set(hand.key, det);
                 }
-                const stepped = stepPumpDetector(
-                  det,
-                  palmCenter(hand.landmarks).y,
-                  now,
-                );
+                const mcp = indexMetacarpalPoint(hand.landmarks);
+                const stepped = stepPumpDetector(det, mcp.y, mcp.x, now);
                 pumpDetectors.current.set(hand.key, stepped.state);
                 if (stepped.pumped) {
-                  onPumpRef.current(dualHand && activePumps.length >= 2 ? "dual" : "single");
+                  onPumpRef.current(
+                    dualHand && activePumps.length >= 2 ? "dual" : "single",
+                  );
                 }
               }
             }
@@ -414,7 +414,15 @@ export function useVisionSession({
                       : dualHand
                         ? "FAP"
                         : "PUMP";
-                drawHandSkeleton(ctx, hand.landmarks, w, h, color, label);
+                drawHandSkeleton(
+                  ctx,
+                  hand.landmarks,
+                  w,
+                  h,
+                  color,
+                  label,
+                  near === "none",
+                );
               }
             }
 
