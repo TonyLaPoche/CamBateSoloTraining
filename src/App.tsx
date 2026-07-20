@@ -12,9 +12,10 @@ import { useVisionSession } from "@/hooks/useVisionSession";
 import type { HudAction } from "@/lib/camHud";
 import type { FaceHandAction } from "@/lib/faceFeatures";
 import {
-  comboMultiplier,
+  computeBonuses,
   loadStats,
   milestoneFor,
+  pointsForPump,
   saveStats,
 } from "@/lib/score";
 import {
@@ -90,9 +91,14 @@ export default function App() {
   });
 
   const camera = useCamera(videoRef);
-  const baseMult = useMemo(() => comboMultiplier(combo), [combo]);
-  const multiplier = baseMult * (cumActive ? 3 : 1);
   const inArena = screen === "arena";
+  const bonusInputRef = useRef({
+    handCount: 0,
+    handsJoined: false,
+    leftEyeOpen: true,
+    rightEyeOpen: true,
+    mouthOpen: false,
+  });
 
   const refreshSessions = useCallback(async () => {
     setSessions(await listSessions());
@@ -109,17 +115,6 @@ export default function App() {
   useEffect(() => {
     setSessionPeakCombo((p) => Math.max(p, combo));
   }, [combo]);
-
-  useEffect(() => {
-    hudRef.current = {
-      pumps,
-      score,
-      combo,
-      multiplier,
-      fapping,
-      cumActive,
-    };
-  }, [pumps, score, combo, multiplier, fapping, cumActive]);
 
   const getHud = useCallback(() => hudRef.current, []);
 
@@ -155,32 +150,29 @@ export default function App() {
     }
   }, []);
 
-  const onPump = useCallback(
-    (source: "single" | "dual") => {
-      const now = performance.now();
-      const nextCombo =
-        now - lastPumpAtRef.current <= COMBO_WINDOW_MS
-          ? comboRef.current + 1
-          : 1;
-      comboRef.current = nextCombo;
-      lastPumpAtRef.current = now;
-      const dualBonus = source === "dual" ? 1.5 : 1;
-      const mult =
-        comboMultiplier(nextCombo) * (cumActive ? 3 : 1) * dualBonus;
+  const onPump = useCallback(() => {
+    const now = performance.now();
+    const nextCombo =
+      now - lastPumpAtRef.current <= COMBO_WINDOW_MS
+        ? comboRef.current + 1
+        : 1;
+    comboRef.current = nextCombo;
+    lastPumpAtRef.current = now;
 
-      setCombo(nextCombo);
-      setPumps((p) => {
-        const next = p + 1;
-        const mile = milestoneFor(next);
-        if (mile) showToast(`${mile} PUMPS`);
-        return next;
-      });
-      setScore((s) => s + 10 * mult);
-      setFlash(true);
-      window.setTimeout(() => setFlash(false), 280);
-    },
-    [cumActive, showToast],
-  );
+    const bonuses = computeBonuses(bonusInputRef.current);
+    const pts = pointsForPump(bonuses, cumActive);
+
+    setCombo(nextCombo);
+    setPumps((p) => {
+      const next = p + 1;
+      const mile = milestoneFor(next);
+      if (mile) showToast(`${mile} FAPS`);
+      return next;
+    });
+    setScore((s) => s + pts);
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 280);
+  }, [cumActive, showToast]);
 
   const onFaceActionTick = useCallback(
     (action: FaceHandAction) => {
@@ -449,6 +441,35 @@ export default function App() {
   );
 
   const face = vision.faceState;
+
+  const bonusInput = useMemo(
+    () => ({
+      handCount: vision.handCount,
+      handsJoined: face.handsJoined,
+      leftEyeOpen: face.seen ? face.leftEyeOpen : true,
+      rightEyeOpen: face.seen ? face.rightEyeOpen : true,
+      mouthOpen: face.seen ? face.mouthOpen : false,
+    }),
+    [vision.handCount, face],
+  );
+
+  const bonuses = useMemo(() => computeBonuses(bonusInput), [bonusInput]);
+
+  useEffect(() => {
+    bonusInputRef.current = bonusInput;
+  }, [bonusInput]);
+
+  useEffect(() => {
+    hudRef.current = {
+      pumps,
+      score,
+      combo,
+      multiplier: bonuses.total * (cumActive ? 3 : 1),
+      fapping,
+      cumActive,
+    };
+  }, [pumps, score, combo, bonuses.total, fapping, cumActive]);
+
   const statusTitle = camera.error
     ? camera.error
     : !camera.ready
@@ -598,12 +619,12 @@ export default function App() {
                   pumps={pumps}
                   score={score}
                   combo={combo}
-                  multiplier={multiplier}
                   flash={flash}
                   fapping={fapping}
                   cumActive={cumActive}
                   handCount={vision.handCount}
                   face={face}
+                  bonuses={bonuses}
                 />
               </>
             )}

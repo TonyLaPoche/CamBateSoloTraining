@@ -32,6 +32,7 @@ import {
   type FaceHandAction,
 } from "@/lib/faceFeatures";
 import {
+  dist,
   handednessLabel,
   indexTip,
   isPinching,
@@ -43,6 +44,9 @@ import {
   stepPumpDetector,
   type PumpDetectorState,
 } from "@/lib/pumpDetector";
+
+/** Distance normalisée max pour considérer 2 mains « jointes » */
+const HANDS_JOINED_DIST = 0.13;
 
 const WASM_URL =
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm";
@@ -76,6 +80,7 @@ export type VisionFaceState = FaceExpression & {
   seen: boolean;
   faceAction: FaceHandAction;
   dualHand: boolean;
+  handsJoined: boolean;
 };
 
 type Options = {
@@ -84,7 +89,7 @@ type Options = {
   enabled: boolean;
   overlays: OverlayFlags;
   session: SessionFlags;
-  onPump: (source: "single" | "dual") => void;
+  onPump: () => void;
   onFaceActionTick: (action: FaceHandAction) => void;
   onHudAction: (action: HudAction) => void;
 };
@@ -107,6 +112,7 @@ const IDLE_FACE: VisionFaceState = {
   tongue: 0,
   faceAction: "none",
   dualHand: false,
+  handsJoined: false,
 };
 
 export function useVisionSession({
@@ -320,14 +326,38 @@ export function useVisionSession({
               }
             }
 
-            // Pumps : toutes les mains hors zone visage (1 ou 2 = dual fap)
+            let handsJoined = false;
+            if (pumpHands.length >= 2) {
+              const a = indexMetacarpalPoint(pumpHands[0]!.landmarks);
+              const b = indexMetacarpalPoint(pumpHands[1]!.landmarks);
+              handsJoined = dist(a, b) <= HANDS_JOINED_DIST;
+            }
+
+            // Un seul compteur de fap : moyenne si jointes, sinon main primaire
             if (sess.fapping) {
               const activePumps =
-                pumpHands.length > 0 ? pumpHands : tracked.length === 1 && faceAction === "none"
-                  ? tracked
-                  : pumpHands;
+                pumpHands.length > 0
+                  ? pumpHands
+                  : tracked.length === 1 && faceAction === "none"
+                    ? tracked
+                    : pumpHands;
 
-              for (const hand of activePumps) {
+              if (activePumps.length >= 2) {
+                const pa = indexMetacarpalPoint(activePumps[0]!.landmarks);
+                const pb = indexMetacarpalPoint(activePumps[1]!.landmarks);
+                const joined = dist(pa, pb) <= HANDS_JOINED_DIST;
+                const y = joined ? (pa.y + pb.y) / 2 : pa.y;
+                const x = joined ? (pa.x + pb.x) / 2 : pa.x;
+                let det = pumpDetectors.current.get("pump-pair");
+                if (!det) {
+                  det = createPumpDetector();
+                  pumpDetectors.current.set("pump-pair", det);
+                }
+                const stepped = stepPumpDetector(det, y, x, now);
+                pumpDetectors.current.set("pump-pair", stepped.state);
+                if (stepped.pumped) onPumpRef.current();
+              } else if (activePumps.length === 1) {
+                const hand = activePumps[0]!;
                 let det = pumpDetectors.current.get(hand.key);
                 if (!det) {
                   det = createPumpDetector();
@@ -336,11 +366,7 @@ export function useVisionSession({
                 const mcp = indexMetacarpalPoint(hand.landmarks);
                 const stepped = stepPumpDetector(det, mcp.y, mcp.x, now);
                 pumpDetectors.current.set(hand.key, stepped.state);
-                if (stepped.pumped) {
-                  onPumpRef.current(
-                    dualHand && activePumps.length >= 2 ? "dual" : "single",
-                  );
-                }
+                if (stepped.pumped) onPumpRef.current();
               }
             }
 
@@ -359,6 +385,7 @@ export function useVisionSession({
               seen: Boolean(faceLm),
               faceAction,
               dualHand,
+              handsJoined,
             };
             const key = [
               nextFace.seen,
@@ -368,6 +395,7 @@ export function useVisionSession({
               nextFace.tongueOut,
               nextFace.faceAction,
               nextFace.dualHand,
+              nextFace.handsJoined,
             ].join("|");
             if (faceStateKeyRef.current !== key) {
               faceStateKeyRef.current = key;
@@ -438,15 +466,17 @@ export function useVisionSession({
                     ? "POPPERS"
                     : near === "vape"
                       ? "VAPE"
-                      : dualHand
-                        ? "FAP"
-                        : "PUMP";
+                      : handsJoined
+                        ? "JOINED"
+                        : dualHand
+                          ? "FAP"
+                          : "PUMP";
                 drawHandSkeleton(
                   ctx,
                   hand.landmarks,
                   w,
                   h,
-                  color,
+                  near === "none" && handsJoined ? "#FBFF4D" : color,
                   label,
                   near === "none",
                 );
