@@ -1,13 +1,21 @@
 type Props = {
   onExit: () => void;
+  /** dock = dans la barre mobile · overlay = coin cam (desktop) */
+  variant?: "overlay" | "dock";
 };
 
-export function ExitArenaButton({ onExit }: Props) {
+export function ExitArenaButton({ onExit, variant = "overlay" }: Props) {
+  const dock = variant === "dock";
+
   return (
     <button
       type="button"
       onClick={onExit}
-      className="absolute right-2 top-2 z-30 flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-cbs-bg3 bg-black/70 px-2.5 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-cbs-live hover:text-cbs-primary sm:right-3 sm:top-3 sm:gap-2 sm:px-3"
+      className={
+        dock
+          ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cbs-bg3 bg-cbs-bg2 text-white transition hover:border-cbs-live hover:text-cbs-primary"
+          : "absolute right-2 top-2 z-30 flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-cbs-bg3 bg-black/70 px-2.5 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:border-cbs-live hover:text-cbs-primary sm:right-3 sm:top-3 sm:gap-2 sm:px-3"
+      }
       aria-label="Exit"
     >
       <svg
@@ -31,7 +39,7 @@ export function ExitArenaButton({ onExit }: Props) {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="hidden sm:inline">Exit</span>
+      {!dock && <span className="hidden sm:inline">Exit</span>}
     </button>
   );
 }

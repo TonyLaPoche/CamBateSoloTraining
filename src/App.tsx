@@ -74,6 +74,12 @@ export default function App() {
   const [showFace, setShowFace] = useState(true);
   const [showHud, setShowHud] = useState(true);
   const [sessionPeakCombo, setSessionPeakCombo] = useState(0);
+  /** Mobile : HUD hors flux cam (pas de superposition) */
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 767px)").matches
+      : false,
+  );
 
   const lastPumpAtRef = useRef(0);
   const comboRef = useRef(0);
@@ -112,6 +118,14 @@ export default function App() {
   useEffect(() => {
     fappingRef.current = fapping;
   }, [fapping]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     setSessionPeakCombo((p) => Math.max(p, combo));
@@ -295,7 +309,12 @@ export default function App() {
     videoRef,
     canvasRef: overlayRef,
     enabled: inArena && camera.ready,
-    overlays: { showHands, showFace, showHud },
+    overlays: {
+      showHands,
+      showFace,
+      // Sur mobile : contrôles HTML hors cam, pas de boutons canvas
+      showHud: showHud && !isNarrow,
+    },
     session: {
       fapping,
       recording: recorder.recording,
@@ -581,7 +600,7 @@ export default function App() {
             )}
           </>
         ) : (
-          <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-cbs-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)] sm:rounded-2xl">
+          <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-cbs-bg3 bg-black shadow-[0_0_60px_rgba(0,0,0,0.45)] sm:rounded-2xl">
             {!camera.ready && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-cbs-bg1 p-6 text-center sm:p-8">
                 <div className="h-1 w-24 rounded-full cbs-gradient-bg" />
@@ -603,21 +622,11 @@ export default function App() {
               </div>
             )}
 
-            <video
-              ref={videoRef}
-              className="absolute inset-0 h-full w-full object-contain bg-black"
-              playsInline
-              muted
-            />
-            <canvas
-              ref={overlayRef}
-              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-            />
-
+            {/* Mobile : score + bonus + exit dans la zone noire hors flux */}
             {camera.ready && (
-              <>
-                <ExitArenaButton onExit={() => void handleExitArena()} />
+              <div className="relative z-20 flex shrink-0 items-start gap-2 border-b border-cbs-bg3 bg-black px-2 py-1.5 md:hidden">
                 <ScoreHud
+                  variant="dock"
                   pumps={pumps}
                   score={score}
                   combo={combo}
@@ -628,37 +637,107 @@ export default function App() {
                   face={face}
                   bonuses={bonuses}
                 />
-              </>
-            )}
-
-            <CenterCountdown label={centerLabel} />
-            <MilestoneToast message={toast} />
-
-            {recorder.recording && (
-              <div className="absolute right-2 top-12 z-20 flex items-center gap-1.5 rounded-full bg-cbs-live/90 px-2.5 py-1 text-[10px] font-semibold text-white shadow-[0_0_11.87px_0_#F41141] sm:right-3 sm:top-14 sm:gap-2 sm:px-3 sm:text-xs">
-                <span className="live-dot h-2 w-2 rounded-full bg-white" />
-                {recorder.paused ? "PAUSE" : "REC"}
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {recorder.recording && (
+                    <div className="flex items-center gap-1 rounded-full bg-cbs-live/90 px-2 py-0.5 text-[9px] font-semibold text-white">
+                      <span className="live-dot h-1.5 w-1.5 rounded-full bg-white" />
+                      {recorder.paused ? "PAUSE" : "REC"}
+                    </div>
+                  )}
+                  <ExitArenaButton
+                    variant="dock"
+                    onExit={() => void handleExitArena()}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Raccourcis souris masqués si HUD cam actif */}
-            {!showHud && camera.ready && (
-              <ControlBar
-                camReady={camera.ready}
-                fapping={fapping}
-                recording={recorder.recording}
-                recPaused={recorder.paused}
-                cumActive={cumActive}
-                hasClip={Boolean(recorder.lastBlobUrl)}
-                onStartCam={() => void camera.start()}
-                onToggleFap={handleToggleFap}
-                onRecStart={handleRecStart}
-                onRecPause={handleRecPause}
-                onRecStop={() => void handleRecStop()}
-                onGonnaCum={() => void handleGonnaCum()}
-                onDownload={recorder.download}
-                onReset={handleReset}
+            {/* Zone caméra seule — pas d’infos par-dessus sur mobile */}
+            <div className="relative min-h-0 flex-1 bg-black">
+              <video
+                ref={videoRef}
+                className="absolute inset-0 h-full w-full object-contain bg-black"
+                playsInline
+                muted
               />
+              <canvas
+                ref={overlayRef}
+                className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+              />
+
+              {camera.ready && (
+                <>
+                  <div className="hidden md:block">
+                    <ExitArenaButton onExit={() => void handleExitArena()} />
+                    <ScoreHud
+                      pumps={pumps}
+                      score={score}
+                      combo={combo}
+                      flash={flash}
+                      fapping={fapping}
+                      cumActive={cumActive}
+                      handCount={vision.handCount}
+                      face={face}
+                      bonuses={bonuses}
+                    />
+                  </div>
+                </>
+              )}
+
+              <CenterCountdown label={centerLabel} />
+              <MilestoneToast message={toast} />
+
+              {recorder.recording && (
+                <div className="absolute right-3 top-3 z-20 hidden items-center gap-2 rounded-full bg-cbs-live/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_0_11.87px_0_#F41141] md:flex">
+                  <span className="live-dot h-2 w-2 rounded-full bg-white" />
+                  {recorder.paused ? "PAUSE" : "REC"}
+                </div>
+              )}
+
+              {/* Desktop : barre souris si HUD cam off */}
+              {!showHud && camera.ready && (
+                <div className="hidden md:block">
+                  <ControlBar
+                    camReady={camera.ready}
+                    fapping={fapping}
+                    recording={recorder.recording}
+                    recPaused={recorder.paused}
+                    cumActive={cumActive}
+                    hasClip={Boolean(recorder.lastBlobUrl)}
+                    onStartCam={() => void camera.start()}
+                    onToggleFap={handleToggleFap}
+                    onRecStart={handleRecStart}
+                    onRecPause={handleRecPause}
+                    onRecStop={() => void handleRecStop()}
+                    onGonnaCum={() => void handleGonnaCum()}
+                    onDownload={recorder.download}
+                    onReset={handleReset}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Mobile : contrôles dans la zone noire sous la cam */}
+            {camera.ready && (
+              <div className="shrink-0 border-t border-cbs-bg3 bg-black md:hidden">
+                <ControlBar
+                  variant="dock"
+                  camReady={camera.ready}
+                  fapping={fapping}
+                  recording={recorder.recording}
+                  recPaused={recorder.paused}
+                  cumActive={cumActive}
+                  hasClip={Boolean(recorder.lastBlobUrl)}
+                  onStartCam={() => void camera.start()}
+                  onToggleFap={handleToggleFap}
+                  onRecStart={handleRecStart}
+                  onRecPause={handleRecPause}
+                  onRecStop={() => void handleRecStop()}
+                  onGonnaCum={() => void handleGonnaCum()}
+                  onDownload={recorder.download}
+                  onReset={handleReset}
+                />
+              </div>
             )}
           </section>
         )}

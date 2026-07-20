@@ -13,6 +13,8 @@ type Props = {
   onGonnaCum: () => void;
   onDownload: () => void;
   onReset: () => void;
+  /** overlay = flottant sur cam · dock = barre fixe hors flux */
+  variant?: "overlay" | "dock";
 };
 
 export function ControlBar({
@@ -30,10 +32,19 @@ export function ControlBar({
   onGonnaCum,
   onDownload,
   onReset,
+  variant = "overlay",
 }: Props) {
+  const dock = variant === "dock";
+
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:p-3">
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-1 rounded-2xl border border-cbs-bg3 bg-black/60 p-1.5 backdrop-blur-md sm:gap-1.5 sm:p-2">
+    <div
+      className={
+        dock
+          ? "w-full p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          : "absolute inset-x-0 bottom-0 z-20 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:p-3"
+      }
+    >
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-1 rounded-2xl border border-cbs-bg3 bg-cbs-bg1 p-1.5 sm:gap-1.5 sm:bg-black/60 sm:p-2 sm:backdrop-blur-md">
         {!camReady ? (
           <button
             type="button"
