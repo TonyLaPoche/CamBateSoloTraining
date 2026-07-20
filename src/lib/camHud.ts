@@ -106,18 +106,39 @@ export type DwellState = {
   since: number;
 };
 
-export const HUD_DWELL_MS = 550;
+/** Hover par défaut (start fap, rec, cum confirm) */
+export const HUD_DWELL_DEFAULT_MS = 1200;
+/** Hover pour PAUSE / arrêter le fap */
+export const HUD_DWELL_STOP_MS = 2000;
+
+export function dwellMsFor(
+  action: HudAction,
+  state: HudRuntimeState,
+): number {
+  if (action === "toggle-fap" && state.fapping) return HUD_DWELL_STOP_MS;
+  return HUD_DWELL_DEFAULT_MS;
+}
+
+/** Pinch instant seulement sur les boutons rec */
+export function allowPinchInstant(action: HudAction): boolean {
+  return (
+    action === "rec-start" ||
+    action === "rec-pause" ||
+    action === "rec-stop"
+  );
+}
 
 export function stepDwell(
   dwell: DwellState,
   hit: HudButton | null,
   pinching: boolean,
   now: number,
+  requiredMs: number,
+  pinchInstant: boolean,
 ): { dwell: DwellState; fired: HudAction | null } {
   if (!hit) return { dwell: { action: null, since: 0 }, fired: null };
 
-  // Pinch = click immédiat
-  if (pinching) {
+  if (pinching && pinchInstant) {
     return { dwell: { action: null, since: 0 }, fired: hit.id };
   }
 
@@ -125,7 +146,7 @@ export function stepDwell(
     return { dwell: { action: hit.id, since: now }, fired: null };
   }
 
-  if (now - dwell.since >= HUD_DWELL_MS) {
+  if (now - dwell.since >= requiredMs) {
     return { dwell: { action: null, since: 0 }, fired: hit.id };
   }
 
@@ -136,7 +157,8 @@ export function dwellProgress(
   dwell: DwellState,
   hit: HudButton | null,
   now: number,
+  requiredMs: number,
 ): number {
   if (!hit || dwell.action !== hit.id || !dwell.since) return 0;
-  return Math.min(1, (now - dwell.since) / HUD_DWELL_MS);
+  return Math.min(1, (now - dwell.since) / requiredMs);
 }

@@ -6,8 +6,11 @@ import {
   type NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
 import {
+  allowPinchInstant,
+  dwellMsFor,
   dwellProgress,
   hitHudButton,
+  HUD_DWELL_DEFAULT_MS,
   layoutHudButtons,
   stepDwell,
   type DwellState,
@@ -373,11 +376,16 @@ export function useVisionSession({
             const interactTip = interact ? indexTip(interact.landmarks) : tipForHud;
             const pinching = interact ? isPinching(interact.landmarks) : false;
             const hit = interactTip ? hitHudButton(buttons, interactTip) : null;
+            const requiredMs = hit
+              ? dwellMsFor(hit.id, hudState)
+              : HUD_DWELL_DEFAULT_MS;
             const dwellStep = stepDwell(
               dwellRef.current,
               hit,
               pinching && Boolean(hit),
               now,
+              requiredMs,
+              hit ? allowPinchInstant(hit.id) : false,
             );
             dwellRef.current = dwellStep.dwell;
             if (dwellStep.fired && now - lastFireRef.current > 700) {
@@ -392,7 +400,7 @@ export function useVisionSession({
                 w,
                 h,
                 hit?.id ?? null,
-                dwellProgress(dwellRef.current, hit, now),
+                dwellProgress(dwellRef.current, hit, now, requiredMs),
               );
             }
 

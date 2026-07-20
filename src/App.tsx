@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CenterCountdown } from "@/components/CenterCountdown";
 import { ControlBar } from "@/components/ControlBar";
 import { MilestoneToast } from "@/components/MilestoneToast";
 import { OverlayToggles } from "@/components/OverlayToggles";
@@ -17,6 +18,13 @@ import {
 
 const COMBO_WINDOW_MS = 1800;
 const CUM_DURATION_MS = 12_000;
+const COUNTDOWN_STEP_MS = 1000;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 function trackingLabel(
   status: string,
@@ -51,6 +59,7 @@ export default function App() {
   const [combo, setCombo] = useState(0);
   const [flash, setFlash] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [centerLabel, setCenterLabel] = useState<string | null>(null);
   const [lifetime, setLifetime] = useState(loadStats);
   const [showHands, setShowHands] = useState(true);
   const [showFace, setShowFace] = useState(true);
@@ -59,6 +68,9 @@ export default function App() {
   const lastPumpAtRef = useRef(0);
   const comboRef = useRef(0);
   const cumTimerRef = useRef<number>(0);
+  const countdownGenRef = useRef(0);
+  const countdownBusyRef = useRef(false);
+  const fappingRef = useRef(false);
   const hudRef = useRef({
     pumps: 0,
     score: 0,
@@ -71,6 +83,10 @@ export default function App() {
   const camera = useCamera(videoRef);
   const baseMult = useMemo(() => comboMultiplier(combo), [combo]);
   const multiplier = baseMult * (cumActive ? 3 : 1);
+
+  useEffect(() => {
+    fappingRef.current = fapping;
+  }, [fapping]);
 
   useEffect(() => {
     hudRef.current = {
@@ -94,6 +110,27 @@ export default function App() {
   const showToast = useCallback((msg: string, ms = 1600) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), ms);
+  }, []);
+
+  const runCenterCountdown = useCallback(async (steps: string[]) => {
+    if (countdownBusyRef.current) return false;
+    countdownBusyRef.current = true;
+    const gen = ++countdownGenRef.current;
+    try {
+      for (const step of steps) {
+        if (countdownGenRef.current !== gen) return false;
+        setCenterLabel(step);
+        await sleep(COUNTDOWN_STEP_MS);
+      }
+      if (countdownGenRef.current !== gen) return false;
+      setCenterLabel(null);
+      return true;
+    } finally {
+      if (countdownGenRef.current === gen) {
+        countdownBusyRef.current = false;
+        setCenterLabel(null);
+      }
+    }
   }, []);
 
   const onPump = useCallback(
@@ -128,28 +165,46 @@ export default function App() {
       if (action === "none") return;
       const pts = action === "poppers" ? 25 : 18;
       setScore((s) => s + pts * (cumActive ? 2 : 1));
-      // Soft toast only occasionally via score — avoid spam; label in HUD
     },
     [cumActive],
   );
 
-  const handleToggleFap = useCallback(() => {
-    setFapping((v) => {
-      const next = !v;
-      showToast(next ? "START FAP" : "PAUSE FAP");
-      return next;
-    });
+  const handleStartFap = useCallback(async () => {
+    if (fappingRef.current || countdownBusyRef.current) return;
+    const ok = await runCenterCountdown(["3", "2", "1", "LET'S FAP!"]);
+    if (!ok) return;
+    setFapping(true);
+    showToast("FAPPING");
+  }, [runCenterCountdown, showToast]);
+
+  const handleStopFap = useCallback(() => {
+    if (!fappingRef.current) return;
+    countdownGenRef.current += 1;
+    countdownBusyRef.current = false;
+    setCenterLabel(null);
+    setFapping(false);
+    showToast("PAUSE FAP");
   }, [showToast]);
 
-  const handleGonnaCum = useCallback(() => {
+  const handleToggleFap = useCallback(() => {
+    if (fappingRef.current) handleStopFap();
+    else void handleStartFap();
+  }, [handleStartFap, handleStopFap]);
+
+  const handleGonnaCum = useCallback(async () => {
+    if (countdownBusyRef.current || cumActive) return;
+    const ok = await runCenterCountdown(["5", "4", "3", "2", "1"]);
+    if (!ok) return;
     if (cumTimerRef.current) window.clearTimeout(cumTimerRef.current);
     setCumActive(true);
-    showToast("I'M GONNA CUM · ×3", 2000);
+    setCenterLabel("I'M GONNA CUM");
+    window.setTimeout(() => setCenterLabel(null), 900);
+    showToast("×3 ACTIVE", 2000);
     cumTimerRef.current = window.setTimeout(() => {
       setCumActive(false);
       showToast("EDGE COOLDOWN");
     }, CUM_DURATION_MS);
-  }, [showToast]);
+  }, [cumActive, runCenterCountdown, showToast]);
 
   const handleRecStart = useCallback(() => {
     void recorder.start();
@@ -187,7 +242,7 @@ export default function App() {
           handleRecStop();
           break;
         case "gonna-cum":
-          handleGonnaCum();
+          void handleGonnaCum();
           break;
       }
     },
@@ -262,6 +317,9 @@ export default function App() {
     comboRef.current = 0;
     setFapping(false);
     setCumActive(false);
+    countdownGenRef.current += 1;
+    countdownBusyRef.current = false;
+    setCenterLabel(null);
   };
 
   const face = vision.faceState;
@@ -359,6 +417,7 @@ export default function App() {
             />
           )}
 
+          <CenterCountdown label={centerLabel} />
           <MilestoneToast message={toast} />
 
           {recorder.recording && (
@@ -380,7 +439,7 @@ export default function App() {
             onRecStart={handleRecStart}
             onRecPause={handleRecPause}
             onRecStop={handleRecStop}
-            onGonnaCum={handleGonnaCum}
+            onGonnaCum={() => void handleGonnaCum()}
             onDownload={recorder.download}
             onReset={handleReset}
           />
