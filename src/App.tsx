@@ -15,6 +15,11 @@ import { useI18n } from "@/i18n/I18nProvider";
 import type { HudAction } from "@/lib/camHud";
 import type { FaceHandAction } from "@/lib/faceFeatures";
 import {
+  loadHandDominance,
+  saveHandDominance,
+  type HandDominance,
+} from "@/lib/handDominance";
+import {
   computeBonuses,
   loadStats,
   milestoneFor,
@@ -76,6 +81,8 @@ export default function App() {
   const [showHands, setShowHands] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const [showHud, setShowHud] = useState(true);
+  const [handDominance, setHandDominance] =
+    useState<HandDominance>(loadHandDominance);
   const [sessionPeakCombo, setSessionPeakCombo] = useState(0);
   /** Mobile : HUD hors flux cam (pas de superposition) */
   const [isNarrow, setIsNarrow] = useState(() =>
@@ -329,11 +336,17 @@ export default function App() {
       recPaused: recorder.paused,
       cumActive,
     },
+    handDominance,
     hudLabels: messages.hud,
     onPump,
     onFaceActionTick,
     onHudAction,
   });
+
+  const handleHandDominanceChange = useCallback((mode: HandDominance) => {
+    setHandDominance(mode);
+    saveHandDominance(mode);
+  }, []);
 
   useEffect(() => {
     if (combo === 0) return;
@@ -647,6 +660,8 @@ export default function App() {
                   handCount={vision.handCount}
                   face={face}
                   bonuses={bonuses}
+                  handDominance={handDominance}
+                  onHandDominanceChange={handleHandDominanceChange}
                 />
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {recorder.recording && (
@@ -668,7 +683,7 @@ export default function App() {
               <div className="relative min-h-0 min-w-0 flex-1 bg-black">
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 h-full w-full object-contain bg-black"
+                  className="absolute inset-0 h-full w-full scale-x-[-1] object-contain bg-black"
                   playsInline
                   muted
                 />
@@ -728,6 +743,8 @@ export default function App() {
                     handCount={vision.handCount}
                     face={face}
                     bonuses={bonuses}
+                    handDominance={handDominance}
+                    onHandDominanceChange={handleHandDominanceChange}
                   />
                 </aside>
               )}

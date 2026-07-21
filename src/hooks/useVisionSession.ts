@@ -32,12 +32,18 @@ import {
   drawHudButtons,
 } from "@/lib/drawVision";
 import {
-  classifyFaceHand,
   faceZones,
+  isPoppersHand,
+  isVapeUnderMouth,
   parseFaceExpression,
   type FaceExpression,
   type FaceHandAction,
 } from "@/lib/faceFeatures";
+import {
+  isNonDominantHand,
+  pickPreferredHand,
+  type HandDominance,
+} from "@/lib/handDominance";
 import {
   dist,
   handednessLabel,
@@ -96,6 +102,7 @@ type Options = {
   enabled: boolean;
   overlays: OverlayFlags;
   session: SessionFlags;
+  handDominance?: HandDominance;
   /** Labels HUD cam (i18n) */
   hudLabels?: import("@/lib/camHud").HudLayoutOpts["labels"];
   onPump: () => void;
@@ -173,6 +180,7 @@ export function useVisionSession({
   enabled,
   overlays,
   session,
+  handDominance = "auto",
   hudLabels,
   onPump,
   onFaceActionTick,
@@ -205,6 +213,8 @@ export function useVisionSession({
   overlaysRef.current = overlays;
   const sessionRef = useRef(session);
   sessionRef.current = session;
+  const dominanceRef = useRef(handDominance);
+  dominanceRef.current = handDominance;
   const hudLabelsRef = useRef(hudLabels);
   hudLabelsRef.current = hudLabels;
   const onPumpRef = useRef(onPump);
@@ -393,6 +403,7 @@ export function useVisionSession({
         }
 
         const dualHand = tracked.length >= 2;
+        const mode = dominanceRef.current;
 
         let faceAction: FaceHandAction = "none";
         const pumpHands: TrackedHand[] = [];
@@ -400,15 +411,20 @@ export function useVisionSession({
 
         for (const hand of tracked) {
           const palm = palmCenter(hand.landmarks);
-          const action = classifyFaceHand(palm, zones);
-          if (action !== "none") {
+          if (isPoppersHand(palm, zones)) {
             faceHands.push(hand);
-            if (faceAction === "none" || action === "poppers") {
-              faceAction = action;
-            }
-          } else {
-            pumpHands.push(hand);
+            faceAction = "poppers";
+            continue;
           }
+          if (
+            isNonDominantHand(hand.handedness, mode) &&
+            isVapeUnderMouth(palm, zones)
+          ) {
+            faceHands.push(hand);
+            if (faceAction !== "poppers") faceAction = "vape";
+            continue;
+          }
+          pumpHands.push(hand);
         }
 
         let handsJoined = false;
@@ -428,12 +444,16 @@ export function useVisionSession({
                 ? tracked
                 : pumpHands;
 
-          if (activePumps.length >= 2) {
-            const pa = indexMetacarpalPoint(activePumps[0]!.landmarks);
-            const pb = indexMetacarpalPoint(activePumps[1]!.landmarks);
-            const joined = dist(pa, pb) <= HANDS_JOINED_DIST;
-            const y = joined ? (pa.y + pb.y) / 2 : pa.y;
-            const x = joined ? (pa.x + pb.x) / 2 : pa.x;
+          if (activePumps.length >= 2 && handsJoined) {
+            const preferred =
+              pickPreferredHand(activePumps, mode) ?? activePumps[0]!;
+            const other =
+              activePumps.find((h) => h.key !== preferred.key) ??
+              activePumps[1]!;
+            const pa = indexMetacarpalPoint(preferred.landmarks);
+            const pb = indexMetacarpalPoint(other.landmarks);
+            const y = (pa.y + pb.y) / 2;
+            const x = (pa.x + pb.x) / 2;
             let det = pumpDetectors.current.get("pump-pair");
             if (!det) {
               det = createPumpDetector();
@@ -442,8 +462,9 @@ export function useVisionSession({
             const stepped = stepPumpDetector(det, y, x, now, pumpOpts);
             pumpDetectors.current.set("pump-pair", stepped.state);
             if (stepped.pumped) onPumpRef.current();
-          } else if (activePumps.length === 1) {
-            const hand = activePumps[0]!;
+          } else if (activePumps.length >= 1) {
+            const hand =
+              pickPreferredHand(activePumps, mode) ?? activePumps[0]!;
             let det = pumpDetectors.current.get(hand.key);
             if (!det) {
               det = createPumpDetector();
@@ -514,8 +535,12 @@ export function useVisionSession({
         if (ctx) {
           clearCanvas(ctx, w, h);
 
+          // Cam vidéo en miroir CSS → overlays dessinés en X miroir pour coller
+          const flipLm = (lms: NormalizedLandmark[]) =>
+            lms.map((p) => ({ ...p, x: 1 - p.x, y: p.y, z: p.z }));
+
           if (ov.showFace && faceLm && !profile.liteDraw) {
-            drawFaceMask(ctx, faceLm, w, h, expr);
+            drawFaceMask(ctx, flipLm(faceLm), w, h, expr);
           }
 
           const hudState: HudRuntimeState = {
@@ -524,19 +549,28 @@ export function useVisionSession({
             paused: sess.recPaused,
             cumActive: sess.cumActive,
           };
+          // Boutons en espace visuel (LTR) — tip aussi converti en miroir
           const buttons = ov.showHud
             ? layoutHudButtons(hudState, {
                 compact: h > w || w < 700,
                 labels: hudLabelsRef.current,
               })
             : [];
-          const tipHand = tracked[0];
-          const tipForHud = tipHand ? indexTip(tipHand.landmarks) : null;
+
+          const interactPool =
+            faceHands.length > 0
+              ? faceHands
+              : tracked.length > 0
+                ? tracked
+                : [];
           const interact =
-            faceHands[0] ?? (tracked.length > 1 ? tracked[1] : tracked[0]);
-          const interactTip = interact
+            pickPreferredHand(interactPool, mode) ?? interactPool[0] ?? null;
+          const interactTipRaw = interact
             ? indexTip(interact.landmarks)
-            : tipForHud;
+            : null;
+          const interactTip = interactTipRaw
+            ? { x: 1 - interactTipRaw.x, y: interactTipRaw.y }
+            : null;
           const pinching = interact ? isPinching(interact.landmarks) : false;
           const hit =
             ov.showHud && interactTip
@@ -574,7 +608,14 @@ export function useVisionSession({
           if (ov.showHands) {
             for (const hand of tracked) {
               const palm = palmCenter(hand.landmarks);
-              const near = classifyFaceHand(palm, zones);
+              let near: FaceHandAction = "none";
+              if (isPoppersHand(palm, zones)) near = "poppers";
+              else if (
+                isNonDominantHand(hand.handedness, mode) &&
+                isVapeUnderMouth(palm, zones)
+              ) {
+                near = "vape";
+              }
               const color =
                 near === "poppers"
                   ? "#FF0107"
@@ -593,7 +634,7 @@ export function useVisionSession({
                         : "PUMP";
               drawHandSkeleton(
                 ctx,
-                hand.landmarks,
+                flipLm(hand.landmarks),
                 w,
                 h,
                 near === "none" && handsJoined ? "#FBFF4D" : color,

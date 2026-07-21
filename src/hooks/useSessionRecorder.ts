@@ -60,7 +60,12 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
     if (!ctx) return;
 
     const paint = () => {
+      // Vidéo miroir (comme l’UI CSS) ; overlay déjà dessiné en X miroir
+      ctx.save();
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, w, h);
+      ctx.restore();
 
       const overlay = overlayRef.current;
       if (overlay && overlay.width > 0) {

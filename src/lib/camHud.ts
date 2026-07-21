@@ -28,6 +28,11 @@ export type HudRuntimeState = {
 export type HudLayoutOpts = {
   /** Portrait / étroit : boutons plus hauts, labels courts */
   compact?: boolean;
+  /**
+   * Cam en miroir CSS : inverser les x des boutons pour que
+   * START reste à gauche à l’écran après scaleX(-1).
+   */
+  mirrored?: boolean;
   labels?: {
     startFap: string;
     pauseFap: string;
@@ -44,6 +49,17 @@ export type HudLayoutOpts = {
     stop: string;
   };
 };
+
+function maybeMirrorButtons(
+  buttons: HudButton[],
+  mirrored: boolean,
+): HudButton[] {
+  if (!mirrored) return buttons;
+  return buttons.map((b) => ({
+    ...b,
+    x: 1 - b.x - b.w,
+  }));
+}
 
 /** Boutons en haut de la cam — 3 slots */
 export function layoutHudButtons(
@@ -135,7 +151,7 @@ export function layoutHudButtons(
     });
   }
 
-  return buttons;
+  return maybeMirrorButtons(buttons, opts.mirrored === true);
 }
 
 export function hitHudButton(

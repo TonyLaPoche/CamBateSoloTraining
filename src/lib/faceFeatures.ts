@@ -166,19 +166,43 @@ export function faceZones(landmarks: NormalizedLandmark[]): FaceZone | null {
 
 export type FaceHandAction = "none" | "vape" | "poppers";
 
-/** Main proche du visage → vape (nez) ou poppers (bouche) */
+/** Poppers : main sur / près de la bouche (inchangé). */
+export function isPoppersHand(
+  palm: { x: number; y: number },
+  zone: FaceZone | null,
+): boolean {
+  if (!zone) return false;
+  const dFace = Math.hypot(palm.x - zone.cx, palm.y - zone.cy);
+  if (dFace > zone.radius * 1.45) return false;
+  const dMouth = Math.hypot(palm.x - zone.mouthX, palm.y - zone.mouthY);
+  const dNose = Math.hypot(palm.x - zone.noseX, palm.y - zone.noseY);
+  return dMouth < zone.radius * 0.85 || dMouth <= dNose;
+}
+
+/**
+ * Vape : main sous la bouche (pas sur le côté), typiquement non-dominante.
+ * y MediaPipe augmente vers le bas → sous la bouche = palm.y > mouthY.
+ */
+export function isVapeUnderMouth(
+  palm: { x: number; y: number },
+  zone: FaceZone | null,
+): boolean {
+  if (!zone) return false;
+  const under =
+    palm.y > zone.mouthY + zone.radius * 0.08 &&
+    palm.y < zone.mouthY + zone.radius * 1.35;
+  const centered = Math.abs(palm.x - zone.mouthX) < zone.radius * 0.55;
+  const nearFace =
+    Math.hypot(palm.x - zone.cx, palm.y - zone.cy) < zone.radius * 1.6;
+  return under && centered && nearFace;
+}
+
+/** @deprecated Prefer isPoppersHand / isVapeUnderMouth */
 export function classifyFaceHand(
   palm: { x: number; y: number },
   zone: FaceZone | null,
 ): FaceHandAction {
-  if (!zone) return "none";
-  const dFace = Math.hypot(palm.x - zone.cx, palm.y - zone.cy);
-  if (dFace > zone.radius * 1.45) return "none";
-
-  const dNose = Math.hypot(palm.x - zone.noseX, palm.y - zone.noseY);
-  const dMouth = Math.hypot(palm.x - zone.mouthX, palm.y - zone.mouthY);
-
-  // Priorité bouche = poppers, sinon nez = vape
-  if (dMouth < zone.radius * 0.85 || dMouth <= dNose) return "poppers";
-  return "vape";
+  if (isPoppersHand(palm, zone)) return "poppers";
+  if (isVapeUnderMouth(palm, zone)) return "vape";
+  return "none";
 }

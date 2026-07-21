@@ -109,6 +109,10 @@ export type Messages = {
     hintEyes: string;
     hintMouth: string;
     hudHint: string;
+    handDominance: string;
+    rightHanded: string;
+    leftHanded: string;
+    autoHanded: string;
   };
   controls: {
     enableCam: string;
@@ -274,6 +278,10 @@ export const fr: Messages = {
     hintMouth: "Bouche ouverte = ×2",
     hudHint:
       "HUD cam : les boutons à l’écran sont interactifs avec l’index détecté par la caméra (pointe / maintiens pour valider).",
+    handDominance: "Main dominante",
+    rightHanded: "Droitier",
+    leftHanded: "Gaucher",
+    autoHanded: "Auto",
   },
   controls: {
     enableCam: "Activer la caméra",
@@ -440,6 +448,10 @@ export const en: Messages = {
     hintMouth: "Mouth open = ×2",
     hudHint:
       "Cam HUD: on-screen buttons are interactive with your detected index finger via the camera (point / hold to confirm).",
+    handDominance: "Dominant hand",
+    rightHanded: "Right handed",
+    leftHanded: "Left handed",
+    autoHanded: "Auto",
   },
   controls: {
     enableCam: "Enable camera",

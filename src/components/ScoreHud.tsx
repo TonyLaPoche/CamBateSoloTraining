@@ -1,5 +1,6 @@
 import type { VisionFaceState } from "@/hooks/useVisionSession";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { HandDominance } from "@/lib/handDominance";
 import type { BonusBreakdown } from "@/lib/score";
 
 type Props = {
@@ -12,6 +13,8 @@ type Props = {
   handCount: number;
   face: VisionFaceState;
   bonuses: BonusBreakdown;
+  handDominance: HandDominance;
+  onHandDominanceChange: (mode: HandDominance) => void;
   /** dock = bandeau mobile · sidebar = colonne desktop à droite de la cam */
   variant?: "dock" | "sidebar";
 };
@@ -58,6 +61,8 @@ export function ScoreHud({
   handCount,
   face,
   bonuses,
+  handDominance,
+  onHandDominanceChange,
   variant = "dock",
 }: Props) {
   const { t } = useI18n();
@@ -200,12 +205,51 @@ export function ScoreHud({
     </p>
   );
 
+  const dominanceOpts: { id: HandDominance; label: string }[] = [
+    { id: "right", label: t("score.rightHanded") },
+    { id: "auto", label: t("score.autoHanded") },
+    { id: "left", label: t("score.leftHanded") },
+  ];
+
+  const dominancePicker = (
+    <div
+      className="rounded-xl border border-cbs-bg3/80 bg-black/40 px-2 py-1.5"
+      role="group"
+      aria-label={t("score.handDominance")}
+    >
+      <p className="mb-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-cbs-muted sm:text-[9px]">
+        {t("score.handDominance")}
+      </p>
+      <div className="grid grid-cols-3 gap-1">
+        {dominanceOpts.map((opt) => {
+          const active = handDominance === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              className={`rounded-lg px-1 py-1.5 text-[9px] font-semibold leading-tight transition-colors sm:text-[10px] ${
+                active
+                  ? "bg-cbs-primary text-black"
+                  : "bg-cbs-bg2 text-cbs-muted hover:text-white"
+              }`}
+              aria-pressed={active}
+              onClick={() => onHandDominanceChange(opt.id)}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   if (sidebar) {
     return (
       <div className="flex w-full flex-col gap-2">
         {scoreCard}
         {bonusCard}
         {hudHint}
+        {dominancePicker}
       </div>
     );
   }
@@ -217,6 +261,7 @@ export function ScoreHud({
         {bonusCard}
       </div>
       {hudHint}
+      {dominancePicker}
     </div>
   );
 }
