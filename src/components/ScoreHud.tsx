@@ -12,7 +12,8 @@ type Props = {
   handCount: number;
   face: VisionFaceState;
   bonuses: BonusBreakdown;
-  variant?: "overlay" | "dock";
+  /** dock = bandeau mobile · sidebar = colonne desktop à droite de la cam */
+  variant?: "dock" | "sidebar";
 };
 
 function BonusRow({
@@ -57,7 +58,7 @@ export function ScoreHud({
   handCount,
   face,
   bonuses,
-  variant = "overlay",
+  variant = "dock",
 }: Props) {
   const { t } = useI18n();
 
@@ -72,6 +73,7 @@ export function ScoreHud({
     bonuses.total % 1 === 0 ? bonuses.total : bonuses.total.toFixed(1);
 
   const dock = variant === "dock";
+  const sidebar = variant === "sidebar";
   const handLabel = t(`score.${bonuses.handKey}`);
   const eyesLabel = face.seen
     ? t(`score.${bonuses.eyesKey}`)
@@ -82,8 +84,10 @@ export function ScoreHud({
 
   const scoreCard = (
     <div
-      className={`min-w-0 flex-1 rounded-xl border border-cbs-bg3 bg-cbs-bg1/90 px-2.5 py-1.5 ${
-        dock ? "" : "bg-black/55 backdrop-blur-md sm:rounded-2xl sm:px-4 sm:py-3"
+      className={`rounded-xl border border-cbs-bg3 px-2.5 py-1.5 ${
+        dock
+          ? "min-w-0 flex-1 bg-cbs-bg1/90"
+          : "w-full bg-cbs-bg1/95 sm:rounded-2xl sm:px-3 sm:py-2.5"
       } ${flash ? "pump-flash" : ""}`}
     >
       <div className="flex flex-wrap items-center gap-1.5">
@@ -115,7 +119,7 @@ export function ScoreHud({
         className={`font-display text-cbs-primary ${
           dock
             ? "text-lg leading-tight"
-            : "mt-0.5 text-xl sm:mt-1 sm:text-2xl md:text-3xl"
+            : "mt-0.5 text-xl leading-tight sm:text-2xl"
         }`}
       >
         {pumps}
@@ -123,7 +127,7 @@ export function ScoreHud({
           {t("score.faps")}
         </span>
       </p>
-      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] sm:gap-3 sm:text-sm">
+      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] sm:gap-x-2.5 sm:text-sm">
         <span className="text-white">
           {t("score.score")}{" "}
           <strong className="font-semibold">{Math.floor(score)}</strong>
@@ -131,8 +135,8 @@ export function ScoreHud({
         <span className="text-cbs-accent">×{combo}</span>
         <span className="font-mono text-cbs-primary">×{totalLabel}</span>
       </div>
-      {!dock && (
-        <p className="mt-0.5 text-[9px] text-cbs-muted sm:mt-1 sm:text-[10px]">
+      {sidebar && (
+        <p className="mt-1 text-[9px] text-cbs-muted sm:text-[10px]">
           {t("score.ptsLine", {
             pts: totalLabel,
             cum: cumActive ? " ×3" : "",
@@ -144,10 +148,10 @@ export function ScoreHud({
 
   const bonusCard = (
     <div
-      className={`w-[9.5rem] shrink-0 rounded-xl border border-cbs-bg3 px-2 py-1.5 sm:w-[11.5rem] sm:px-3 sm:py-2 ${
+      className={`shrink-0 rounded-xl border border-cbs-bg3 px-2 py-1.5 ${
         dock
-          ? "bg-cbs-bg1/90"
-          : "bg-black/55 backdrop-blur-md sm:mr-14 md:mr-16 sm:rounded-2xl"
+          ? "w-[9.5rem] bg-cbs-bg1/90 sm:w-[11.5rem] sm:px-3 sm:py-2"
+          : "w-full bg-cbs-bg1/95 sm:rounded-2xl sm:px-3 sm:py-2"
       }`}
     >
       <p className="mb-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] text-cbs-muted sm:mb-1.5 sm:text-[9px]">
@@ -182,17 +186,17 @@ export function ScoreHud({
           </span>
         </div>
       </div>
-      {!dock && (
-        <p className="mt-1 hidden text-[9px] leading-snug text-cbs-muted sm:mt-2 sm:block">
+      {sidebar && (
+        <p className="mt-1.5 text-[9px] leading-snug text-cbs-muted">
           {t("score.cumulative", { count: handCount })}
         </p>
       )}
     </div>
   );
 
-  if (dock) {
+  if (sidebar) {
     return (
-      <div className="flex w-full items-stretch gap-2">
+      <div className="flex w-full flex-col gap-2">
         {scoreCard}
         {bonusCard}
       </div>
@@ -200,7 +204,7 @@ export function ScoreHud({
   }
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 hidden items-start justify-between gap-3 p-4 pt-14 md:flex md:p-6 md:pt-16">
+    <div className="flex w-full items-stretch gap-2">
       {scoreCard}
       {bonusCard}
     </div>
