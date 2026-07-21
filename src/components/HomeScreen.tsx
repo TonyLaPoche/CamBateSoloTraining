@@ -46,6 +46,26 @@ export function HomeScreen({
           <span className="break-all text-cbs-primary">AABB-20-07-2026-22:39</span>.
         </p>
 
+        <div className="mt-4 max-w-xl rounded-xl border border-cbs-bg3 bg-black/35 px-3 py-3 text-[11px] leading-relaxed text-cbs-muted sm:mt-5 sm:px-4 sm:text-xs">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cbs-accent">
+            {t("home.disclaimerTitle")}
+          </p>
+          <p className="mt-2">{t("home.disclaimerMobile")}</p>
+          <p className="mt-2">
+            {t("home.disclaimerPurpose")}{" "}
+            <a
+              href="https://goonmaxxing.goonplex.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cbs-primary underline decoration-cbs-primary/40 underline-offset-2 hover:decoration-cbs-primary"
+            >
+              goonmaxxing.goonplex.com
+            </a>
+            .
+          </p>
+          <p className="mt-2">{t("home.disclaimerPrivacy")}</p>
+        </div>
+
         <label className="mt-5 block sm:mt-6">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cbs-accent">
             {t("home.pseudo")}
@@ -152,6 +172,21 @@ export function HomeScreen({
           </ul>
         )}
       </section>
+
+      <footer className="mt-2 border-t border-cbs-bg3 px-1 py-4 text-center text-[11px] leading-relaxed text-cbs-muted sm:mt-3 sm:py-5 sm:text-xs">
+        <p>
+          {t("home.footerCopyright", { year: new Date().getFullYear() })}
+        </p>
+        <p className="mt-1">
+          {t("home.footerContact")}{" "}
+          <a
+            href="mailto:terrade.antoine.pro@gmail.com"
+            className="text-cbs-primary underline decoration-cbs-primary/40 underline-offset-2 hover:decoration-cbs-primary"
+          >
+            terrade.antoine.pro@gmail.com
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

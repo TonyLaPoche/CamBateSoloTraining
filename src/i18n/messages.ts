@@ -31,6 +31,12 @@ export type Messages = {
     delete: string;
     close: string;
     sessionMeta: string;
+    disclaimerTitle: string;
+    disclaimerMobile: string;
+    disclaimerPurpose: string;
+    disclaimerPrivacy: string;
+    footerCopyright: string;
+    footerContact: string;
   };
   permissions: {
     title: string;
@@ -181,6 +187,15 @@ export const fr: Messages = {
     delete: "Suppr",
     close: "Fermer",
     sessionMeta: "{pseudo}{pumps} pumps · score {score} · combo ×{combo} · {duration}{video}",
+    disclaimerTitle: "À propos de ce projet",
+    disclaimerMobile:
+      "Sur mobile, le rendu peut ne pas fonctionner ou mal fonctionner. Ce n’est qu’un test — le desktop reste le contexte prévu.",
+    disclaimerPurpose:
+      "Le but premier de cette app est d’expérimenter (tracking cam, score, record local), pas de créer un concurrent direct à GoonMaxxing.",
+    disclaimerPrivacy:
+      "Aucune donnée n’est revendue à des tiers. Aucune publicité n’est implémentée. La caméra reste traitée localement dans ton navigateur.",
+    footerCopyright: "Copyright © Antoine Terrade {year}",
+    footerContact: "Contact",
   },
   permissions: {
     title: "Permissions mobile",
@@ -336,6 +351,15 @@ export const en: Messages = {
     close: "Close",
     sessionMeta:
       "{pseudo}{pumps} pumps · score {score} · combo ×{combo} · {duration}{video}",
+    disclaimerTitle: "About this project",
+    disclaimerMobile:
+      "On mobile, rendering may not work or may work poorly. This is only a test — desktop is the intended setup.",
+    disclaimerPurpose:
+      "The primary goal of this app is to experiment (cam tracking, scoring, local recording), not to be a direct competitor to GoonMaxxing.",
+    disclaimerPrivacy:
+      "No data is sold to third parties. No ads are implemented. Camera processing stays local in your browser.",
+    footerCopyright: "Copyright © Antoine Terrade {year}",
+    footerContact: "Contact",
   },
   permissions: {
     title: "Mobile permissions",
