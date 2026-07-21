@@ -194,19 +194,29 @@ export function ScoreHud({
     </div>
   );
 
+  const hudHint = (
+    <p className="rounded-xl border border-cbs-bg3/80 bg-black/40 px-2.5 py-2 text-[9px] leading-snug text-cbs-muted sm:text-[10px]">
+      {t("score.hudHint")}
+    </p>
+  );
+
   if (sidebar) {
     return (
       <div className="flex w-full flex-col gap-2">
         {scoreCard}
         {bonusCard}
+        {hudHint}
       </div>
     );
   }
 
   return (
-    <div className="flex w-full items-stretch gap-2">
-      {scoreCard}
-      {bonusCard}
+    <div className="flex w-full flex-col gap-1.5">
+      <div className="flex w-full items-stretch gap-2">
+        {scoreCard}
+        {bonusCard}
+      </div>
+      {hudHint}
     </div>
   );
 }

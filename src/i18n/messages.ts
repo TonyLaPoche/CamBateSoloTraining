@@ -108,6 +108,7 @@ export type Messages = {
     hintHands: string;
     hintEyes: string;
     hintMouth: string;
+    hudHint: string;
   };
   controls: {
     enableCam: string;
@@ -271,6 +272,8 @@ export const fr: Messages = {
     hintHands: "2 mains jointes = ×2 · sinon ×1",
     hintEyes: "2 yeux fermés = ×4 · 1 œil = ×1.5",
     hintMouth: "Bouche ouverte = ×2",
+    hudHint:
+      "HUD cam : les boutons à l’écran sont interactifs avec l’index détecté par la caméra (pointe / maintiens pour valider).",
   },
   controls: {
     enableCam: "Activer la caméra",
@@ -435,6 +438,8 @@ export const en: Messages = {
     hintHands: "2 joined hands = ×2 · otherwise ×1",
     hintEyes: "Both eyes closed = ×4 · 1 eye = ×1.5",
     hintMouth: "Mouth open = ×2",
+    hudHint:
+      "Cam HUD: on-screen buttons are interactive with your detected index finger via the camera (point / hold to confirm).",
   },
   controls: {
     enableCam: "Enable camera",
