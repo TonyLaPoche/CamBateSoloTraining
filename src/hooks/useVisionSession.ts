@@ -30,6 +30,7 @@ import {
   drawFaceMask,
   drawHandSkeleton,
   drawHudButtons,
+  drawTriggerZones,
 } from "@/lib/drawVision";
 import {
   faceZones,
@@ -49,7 +50,6 @@ import {
   handednessLabel,
   indexTip,
   isPinching,
-  palmCenter,
 } from "@/lib/handGeometry";
 import {
   createPumpDetector,
@@ -80,6 +80,8 @@ export type OverlayFlags = {
   showHands: boolean;
   showFace: boolean;
   showHud: boolean;
+  /** DEV : zones trigger poppers / vape */
+  showZones?: boolean;
 };
 
 type SessionFlags = {
@@ -344,9 +346,10 @@ export function useVisionSession({
         const handInterval = sess.fapping
           ? profile.handIntervalMs
           : Math.max(profile.handIntervalMs, profile.liteDraw ? 66 : 0);
-        const faceInterval = ov.showFace
-          ? profile.faceIntervalMs
-          : Math.max(profile.faceIntervalMs, profile.liteDraw ? 160 : 80);
+        const faceInterval =
+          ov.showFace || ov.showZones
+            ? profile.faceIntervalMs
+            : Math.max(profile.faceIntervalMs, profile.liteDraw ? 160 : 80);
 
         // Inférence mains prioritaires (tracking fap)
         if (now - lastHandInferRef.current >= handInterval) {
@@ -376,7 +379,8 @@ export function useVisionSession({
           return;
         }
 
-        const needDraw = ov.showHands || ov.showFace || ov.showHud;
+        const needDraw =
+          ov.showHands || ov.showFace || ov.showHud || Boolean(ov.showZones);
         const videoW = video.videoWidth || 640;
         const videoH = video.videoHeight || 480;
         const { w, h } = fitCanvasSize(videoW, videoH, profile.maxCanvasWidth);
@@ -410,18 +414,24 @@ export function useVisionSession({
         const faceHands: TrackedHand[] = [];
 
         for (const hand of tracked) {
-          const palm = palmCenter(hand.landmarks);
-          if (isPoppersHand(palm, zones)) {
+          const tip = indexTip(hand.landmarks);
+          const mcp = indexMetacarpalPoint(hand.landmarks);
+          // Non-dominante : poppers (bouche) ou vape (sous bouche) si tip+MCP dans la zone
+          if (isNonDominantHand(hand.handedness, mode)) {
+            if (isPoppersHand(tip, mcp, zones)) {
+              faceHands.push(hand);
+              faceAction = "poppers";
+              continue;
+            }
+            if (isVapeUnderMouth(tip, mcp, zones)) {
+              faceHands.push(hand);
+              if (faceAction !== "poppers") faceAction = "vape";
+              continue;
+            }
+          } else if (isPoppersHand(tip, mcp, zones)) {
+            // Dominante : poppers uniquement
             faceHands.push(hand);
             faceAction = "poppers";
-            continue;
-          }
-          if (
-            isNonDominantHand(hand.handedness, mode) &&
-            isVapeUnderMouth(palm, zones)
-          ) {
-            faceHands.push(hand);
-            if (faceAction !== "poppers") faceAction = "vape";
             continue;
           }
           pumpHands.push(hand);
@@ -463,23 +473,30 @@ export function useVisionSession({
             pumpDetectors.current.set("pump-pair", stepped.state);
             if (stepped.pumped) onPumpRef.current();
           } else if (activePumps.length >= 1) {
-            const hand =
-              pickPreferredHand(activePumps, mode) ?? activePumps[0]!;
-            let det = pumpDetectors.current.get(hand.key);
-            if (!det) {
-              det = createPumpDetector();
-              pumpDetectors.current.set(hand.key, det);
+            // Main(s) libre(s) : fap OK même si l’autre fait vape/poppers
+            const toPump =
+              faceHands.length > 0 || activePumps.length === 1
+                ? activePumps
+                : [
+                    pickPreferredHand(activePumps, mode) ?? activePumps[0]!,
+                  ];
+            for (const hand of toPump) {
+              let det = pumpDetectors.current.get(hand.key);
+              if (!det) {
+                det = createPumpDetector();
+                pumpDetectors.current.set(hand.key, det);
+              }
+              const mcp = indexMetacarpalPoint(hand.landmarks);
+              const stepped = stepPumpDetector(
+                det,
+                mcp.y,
+                mcp.x,
+                now,
+                pumpOpts,
+              );
+              pumpDetectors.current.set(hand.key, stepped.state);
+              if (stepped.pumped) onPumpRef.current();
             }
-            const mcp = indexMetacarpalPoint(hand.landmarks);
-            const stepped = stepPumpDetector(
-              det,
-              mcp.y,
-              mcp.x,
-              now,
-              pumpOpts,
-            );
-            pumpDetectors.current.set(hand.key, stepped.state);
-            if (stepped.pumped) onPumpRef.current();
           }
         }
 
@@ -543,6 +560,10 @@ export function useVisionSession({
             drawFaceMask(ctx, flipLm(faceLm), w, h, expr);
           }
 
+          if (ov.showZones && zones) {
+            drawTriggerZones(ctx, zones, w, h, true);
+          }
+
           const hudState: HudRuntimeState = {
             fapping: sess.fapping,
             recording: sess.recording,
@@ -557,9 +578,10 @@ export function useVisionSession({
               })
             : [];
 
+          // HUD + curseur : main libre (fap), pas celle en vape/poppers
           const interactPool =
-            faceHands.length > 0
-              ? faceHands
+            pumpHands.length > 0
+              ? pumpHands
               : tracked.length > 0
                 ? tracked
                 : [];
@@ -607,14 +629,14 @@ export function useVisionSession({
 
           if (ov.showHands) {
             for (const hand of tracked) {
-              const palm = palmCenter(hand.landmarks);
+              const tip = indexTip(hand.landmarks);
+              const mcp = indexMetacarpalPoint(hand.landmarks);
               let near: FaceHandAction = "none";
-              if (isPoppersHand(palm, zones)) near = "poppers";
-              else if (
-                isNonDominantHand(hand.handedness, mode) &&
-                isVapeUnderMouth(palm, zones)
-              ) {
-                near = "vape";
+              if (isNonDominantHand(hand.handedness, mode)) {
+                if (isPoppersHand(tip, mcp, zones)) near = "poppers";
+                else if (isVapeUnderMouth(tip, mcp, zones)) near = "vape";
+              } else if (isPoppersHand(tip, mcp, zones)) {
+                near = "poppers";
               }
               const color =
                 near === "poppers"

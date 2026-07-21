@@ -77,6 +77,8 @@ export type Messages = {
     faceShort: string;
     hud: string;
     hudShort: string;
+    zones: string;
+    zonesShort: string;
   };
   arena: {
     activating: string;
@@ -245,6 +247,8 @@ export const fr: Messages = {
     faceShort: "V",
     hud: "HUD cam",
     hudShort: "H",
+    zones: "Zones",
+    zonesShort: "Z",
   },
   arena: {
     activating: "ACTIVATION CAM…",
@@ -415,6 +419,8 @@ export const en: Messages = {
     faceShort: "F",
     hud: "Cam HUD",
     hudShort: "U",
+    zones: "Zones",
+    zonesShort: "Z",
   },
   arena: {
     activating: "STARTING CAM…",

@@ -4,9 +4,11 @@ type Props = {
   showHands: boolean;
   showFace: boolean;
   showHud: boolean;
+  showZones?: boolean;
   onToggleHands: () => void;
   onToggleFace: () => void;
   onToggleHud: () => void;
+  onToggleZones?: () => void;
 };
 
 function Chip({
@@ -42,9 +44,11 @@ export function OverlayToggles({
   showHands,
   showFace,
   showHud,
+  showZones = false,
   onToggleHands,
   onToggleFace,
   onToggleHud,
+  onToggleZones,
 }: Props) {
   const { t } = useI18n();
   return (
@@ -55,6 +59,14 @@ export function OverlayToggles({
         label={t("overlay.hands")}
         onClick={onToggleHands}
       />
+      {import.meta.env.DEV && onToggleZones && (
+        <Chip
+          active={showZones}
+          short={t("overlay.zonesShort")}
+          label={t("overlay.zones")}
+          onClick={onToggleZones}
+        />
+      )}
       <Chip
         active={showFace}
         short={t("overlay.faceShort")}

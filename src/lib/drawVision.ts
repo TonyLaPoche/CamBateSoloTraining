@@ -5,7 +5,9 @@ import {
   LIPS_INNER,
   LIPS_OUTER,
   RIGHT_EYE,
+  triggerZoneGeometry,
   type FaceExpression,
+  type FaceZone,
 } from "./faceFeatures";
 import { HAND_CONNECTIONS, type Point } from "./handGeometry";
 
@@ -289,6 +291,53 @@ export function drawCursor(
   ctx.arc(tip.x * w, tip.y * h, 3, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
+}
+
+/** Zones trigger poppers (ellipse) + vape (rect sous ellipse). Coords miroir affichage. */
+export function drawTriggerZones(
+  ctx: CanvasRenderingContext2D,
+  zone: FaceZone,
+  w: number,
+  h: number,
+  mirrored = true,
+) {
+  const geo = triggerZoneGeometry(zone);
+  const mx = (x: number) => (mirrored ? 1 - x : x);
+
+  const pcx = mx(geo.poppers.cx) * w;
+  const pcy = geo.poppers.cy * h;
+  const prx = geo.poppers.rx * w;
+  const pry = geo.poppers.ry * h;
+  ctx.beginPath();
+  ctx.ellipse(pcx, pcy, prx, pry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 1, 7, 0.22)";
+  ctx.fill();
+  ctx.strokeStyle = "#FF0107";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#FF0107";
+  ctx.font = "700 11px Mazzard, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("POPPERS", pcx, Math.max(14, pcy - pry - 6));
+
+  const vx0 = mx(geo.vape.x + geo.vape.w) * w;
+  const vx1 = mx(geo.vape.x) * w;
+  const left = Math.min(vx0, vx1);
+  const right = Math.max(vx0, vx1);
+  const vy = geo.vape.y * h;
+  const vh = geo.vape.h * h;
+  const vw = right - left;
+  ctx.fillStyle = "rgba(175, 158, 255, 0.28)";
+  ctx.fillRect(left, vy, vw, vh);
+  ctx.strokeStyle = "#AF9EFF";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(left, vy, vw, vh);
+  ctx.fillStyle = "#AF9EFF";
+  ctx.textBaseline = "middle";
+  ctx.fillText("VAPE (non-dom)", left + vw / 2, vy + vh / 2);
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
 }
 
 function roundRect(

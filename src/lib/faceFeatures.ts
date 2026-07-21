@@ -166,43 +166,92 @@ export function faceZones(landmarks: NormalizedLandmark[]): FaceZone | null {
 
 export type FaceHandAction = "none" | "vape" | "poppers";
 
-/** Poppers : main sur / près de la bouche (inchangé). */
-export function isPoppersHand(
-  palm: { x: number; y: number },
-  zone: FaceZone | null,
+export type Point2 = { x: number; y: number };
+
+export type TriggerZoneGeo = {
+  poppers: { cx: number; cy: number; rx: number; ry: number };
+  vape: { x: number; y: number; w: number; h: number };
+};
+
+/**
+ * Zones sans chevauchement :
+ * - Poppers = ellipse serrée autour de la bouche
+ * - Vape = rectangle strictement sous le bas de l’ellipse poppers
+ */
+export function triggerZoneGeometry(zone: FaceZone): TriggerZoneGeo {
+  const rx = zone.radius * 0.3;
+  const ry = zone.radius * 0.26;
+  const popBottom = zone.mouthY + ry;
+  const gap = zone.radius * 0.02;
+  const vapeTop = popBottom + gap;
+  const vapeH = zone.radius * 0.72;
+  const vapeHalfW = zone.radius * 0.48;
+  return {
+    poppers: { cx: zone.mouthX, cy: zone.mouthY, rx, ry },
+    vape: {
+      x: zone.mouthX - vapeHalfW,
+      y: vapeTop,
+      w: vapeHalfW * 2,
+      h: vapeH,
+    },
+  };
+}
+
+function pointInPoppers(p: Point2, geo: TriggerZoneGeo): boolean {
+  const dx = (p.x - geo.poppers.cx) / Math.max(1e-6, geo.poppers.rx);
+  const dy = (p.y - geo.poppers.cy) / Math.max(1e-6, geo.poppers.ry);
+  return dx * dx + dy * dy <= 1;
+}
+
+function pointInVape(p: Point2, geo: TriggerZoneGeo): boolean {
+  const { x, y, w, h } = geo.vape;
+  return p.x >= x && p.x <= x + w && p.y >= y && p.y <= y + h;
+}
+
+/** Les deux points (bout index + métacarpe index) doivent être dans la zone. */
+function bothPointsIn(
+  tip: Point2,
+  mcp: Point2,
+  test: (p: Point2) => boolean,
 ): boolean {
-  if (!zone) return false;
-  const dFace = Math.hypot(palm.x - zone.cx, palm.y - zone.cy);
-  if (dFace > zone.radius * 1.45) return false;
-  const dMouth = Math.hypot(palm.x - zone.mouthX, palm.y - zone.mouthY);
-  const dNose = Math.hypot(palm.x - zone.noseX, palm.y - zone.noseY);
-  return dMouth < zone.radius * 0.85 || dMouth <= dNose;
+  return test(tip) && test(mcp);
 }
 
 /**
- * Vape : main sous la bouche (pas sur le côté), typiquement non-dominante.
- * y MediaPipe augmente vers le bas → sous la bouche = palm.y > mouthY.
+ * Poppers : tip + MCP index dans l’ellipse bouche.
+ * Toute main (dominante ou non).
  */
-export function isVapeUnderMouth(
-  palm: { x: number; y: number },
+export function isPoppersHand(
+  tip: Point2,
+  mcp: Point2,
   zone: FaceZone | null,
 ): boolean {
   if (!zone) return false;
-  const under =
-    palm.y > zone.mouthY + zone.radius * 0.08 &&
-    palm.y < zone.mouthY + zone.radius * 1.35;
-  const centered = Math.abs(palm.x - zone.mouthX) < zone.radius * 0.55;
-  const nearFace =
-    Math.hypot(palm.x - zone.cx, palm.y - zone.cy) < zone.radius * 1.6;
-  return under && centered && nearFace;
+  const geo = triggerZoneGeometry(zone);
+  return bothPointsIn(tip, mcp, (p) => pointInPoppers(p, geo));
 }
 
-/** @deprecated Prefer isPoppersHand / isVapeUnderMouth */
+/**
+ * Vape : tip + MCP index dans le rectangle sous la bouche.
+ * À combiner avec filtre main non-dominante côté session.
+ */
+export function isVapeUnderMouth(
+  tip: Point2,
+  mcp: Point2,
+  zone: FaceZone | null,
+): boolean {
+  if (!zone) return false;
+  const geo = triggerZoneGeometry(zone);
+  return bothPointsIn(tip, mcp, (p) => pointInVape(p, geo));
+}
+
+/** @deprecated Prefer isPoppersHand / isVapeUnderMouth avec tip+mcp */
 export function classifyFaceHand(
-  palm: { x: number; y: number },
+  tip: Point2,
+  mcp: Point2,
   zone: FaceZone | null,
 ): FaceHandAction {
-  if (isPoppersHand(palm, zone)) return "poppers";
-  if (isVapeUnderMouth(palm, zone)) return "vape";
+  if (isPoppersHand(tip, mcp, zone)) return "poppers";
+  if (isVapeUnderMouth(tip, mcp, zone)) return "vape";
   return "none";
 }

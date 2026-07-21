@@ -81,6 +81,7 @@ export default function App() {
   const [showHands, setShowHands] = useState(false);
   const [showFace, setShowFace] = useState(false);
   const [showHud, setShowHud] = useState(true);
+  const [showZones, setShowZones] = useState(false);
   const [handDominance, setHandDominance] =
     useState<HandDominance>(loadHandDominance);
   const [sessionPeakCombo, setSessionPeakCombo] = useState(0);
@@ -329,6 +330,7 @@ export default function App() {
       showFace,
       // Sur mobile : contrôles HTML hors cam, pas de boutons canvas
       showHud: showHud && !isNarrow,
+      showZones: import.meta.env.DEV && showZones,
     },
     session: {
       fapping,
@@ -548,9 +550,11 @@ export default function App() {
               showHands={showHands}
               showFace={showFace}
               showHud={showHud}
+              showZones={showZones}
               onToggleHands={() => setShowHands((v) => !v)}
               onToggleFace={() => setShowFace((v) => !v)}
               onToggleHud={() => setShowHud((v) => !v)}
+              onToggleZones={() => setShowZones((v) => !v)}
             />
           )}
           {inArena ? (
