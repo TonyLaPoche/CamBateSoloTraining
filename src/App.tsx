@@ -99,6 +99,9 @@ export default function App() {
   const countdownBusyRef = useRef(false);
   const fappingRef = useRef(false);
   const arenaStartedAtRef = useRef(0);
+  /** Une seule sauvegarde IndexedDB par passage en arène */
+  const sessionSavedRef = useRef(false);
+  const stoppingRecRef = useRef(false);
   const hudRef = useRef({
     pumps: 0,
     score: 0,
@@ -268,8 +271,10 @@ export default function App() {
 
   const persistCurrentSession = useCallback(
     async (blob: Blob | null) => {
+      if (sessionSavedRef.current) return;
       if (pumps <= 0 && !blob) return;
       if (!isValidPseudo(pseudo)) return;
+      sessionSavedRef.current = true;
       await saveSession({
         pseudo,
         pumps,
@@ -284,11 +289,17 @@ export default function App() {
   );
 
   const handleRecStop = useCallback(async () => {
-    const blob = await recorder.stop();
-    showToast(t("toast.recStop"));
-    if (blob) {
-      await persistCurrentSession(blob);
-      showToast(t("toast.sessionSaved"));
+    if (stoppingRecRef.current || !recorder.recording) return;
+    stoppingRecRef.current = true;
+    try {
+      const blob = await recorder.stop();
+      showToast(t("toast.recStop"));
+      if (blob) {
+        await persistCurrentSession(blob);
+        showToast(t("toast.sessionSaved"));
+      }
+    } finally {
+      stoppingRecRef.current = false;
     }
   }, [recorder, showToast, persistCurrentSession, t]);
 
@@ -385,6 +396,8 @@ export default function App() {
     countdownGenRef.current += 1;
     countdownBusyRef.current = false;
     setCenterLabel(null);
+    sessionSavedRef.current = false;
+    stoppingRecRef.current = false;
     recorder.clearClip();
   }, [recorder]);
 
@@ -411,12 +424,16 @@ export default function App() {
     let blob: Blob | null = null;
     if (recorder.recording) {
       blob = await recorder.stop();
-    } else {
+    } else if (!sessionSavedRef.current) {
       blob = recorder.lastBlobRef.current;
     }
 
-    if (pumps > 0 || blob) {
+    const hadContent = pumps > 0 || Boolean(blob);
+    if (!sessionSavedRef.current && hadContent) {
       await persistCurrentSession(blob);
+    }
+
+    if (hadContent || sessionSavedRef.current) {
       setLifetime((prev) => {
         const next = {
           totalPumps: prev.totalPumps + pumps,

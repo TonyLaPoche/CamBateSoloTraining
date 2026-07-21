@@ -198,6 +198,8 @@ export function useVisionSession({
   const pumpDetectors = useRef<Map<string, PumpDetectorState>>(new Map());
   const dwellRef = useRef<DwellState>({ action: null, since: 0 });
   const lastFireRef = useRef(0);
+  /** Empêche double fire (pinch puis dwell) tant que le doigt reste sur le bouton */
+  const firedUntilLeaveRef = useRef<HudAction | null>(null);
   const lastFaceTickRef = useRef(0);
   const rafRef = useRef(0);
   const lastHandInferRef = useRef(0);
@@ -603,17 +605,28 @@ export function useVisionSession({
             : HUD_DWELL_DEFAULT_MS;
 
           if (ov.showHud) {
-            const dwellStep = stepDwell(
-              dwellRef.current,
-              hit,
-              pinching && Boolean(hit),
-              now,
-              requiredMs,
-              hit ? allowPinchInstant(hit.id) : false,
-            );
+            if (!hit) firedUntilLeaveRef.current = null;
+            const locked =
+              hit &&
+              firedUntilLeaveRef.current &&
+              hit.id === firedUntilLeaveRef.current;
+            const dwellStep = locked
+              ? {
+                  dwell: { action: null, since: 0 } as DwellState,
+                  fired: null as HudAction | null,
+                }
+              : stepDwell(
+                  dwellRef.current,
+                  hit,
+                  pinching && Boolean(hit),
+                  now,
+                  requiredMs,
+                  hit ? allowPinchInstant(hit.id) : false,
+                );
             dwellRef.current = dwellStep.dwell;
             if (dwellStep.fired && now - lastFireRef.current > 700) {
               lastFireRef.current = now;
+              firedUntilLeaveRef.current = dwellStep.fired;
               onHudRef.current(dwellStep.fired);
             }
 
@@ -623,7 +636,9 @@ export function useVisionSession({
               w,
               h,
               hit?.id ?? null,
-              dwellProgress(dwellRef.current, hit, now, requiredMs),
+              locked
+                ? 0
+                : dwellProgress(dwellRef.current, hit, now, requiredMs),
             );
           }
 
