@@ -42,6 +42,8 @@ import {
 } from "@/lib/faceFeatures";
 import {
   isNonDominantHand,
+  orderHandsForHud,
+  pickOtherHand,
   pickPreferredHand,
   type HandDominance,
 } from "@/lib/handDominance";
@@ -580,26 +582,48 @@ export function useVisionSession({
               })
             : [];
 
-          // HUD + curseur : main libre (fap), pas celle en vape/poppers
-          const interactPool =
+          // HUD : l’autre main que celle du fap — scan toutes les mains libres
+          const hudPool =
             pumpHands.length > 0
               ? pumpHands
               : tracked.length > 0
                 ? tracked
                 : [];
-          const interact =
-            pickPreferredHand(interactPool, mode) ?? interactPool[0] ?? null;
-          const interactTipRaw = interact
-            ? indexTip(interact.landmarks)
-            : null;
-          const interactTip = interactTipRaw
-            ? { x: 1 - interactTipRaw.x, y: interactTipRaw.y }
-            : null;
-          const pinching = interact ? isPinching(interact.landmarks) : false;
-          const hit =
-            ov.showHud && interactTip
-              ? hitHudButton(buttons, interactTip)
-              : null;
+          const hudOrdered = orderHandsForHud(hudPool, mode);
+
+          let interact: TrackedHand | null = null;
+          let hit: ReturnType<typeof hitHudButton> = null;
+          let interactTip: { x: number; y: number } | null = null;
+          let pinching = false;
+
+          if (ov.showHud && buttons.length > 0) {
+            for (const hand of hudOrdered) {
+              const tipRaw = indexTip(hand.landmarks);
+              const tip = { x: 1 - tipRaw.x, y: tipRaw.y };
+              const hHit = hitHudButton(buttons, tip);
+              if (hHit) {
+                interact = hand;
+                hit = hHit;
+                interactTip = tip;
+                pinching = isPinching(hand.landmarks);
+                break;
+              }
+            }
+          }
+
+          // Pas encore sur un bouton : curseur sur l’autre main (visée HUD)
+          if (!interact && hudPool.length > 0) {
+            interact =
+              hudPool.length >= 2
+                ? pickOtherHand(hudPool, mode)
+                : (pickPreferredHand(hudPool, mode) ?? hudPool[0]!);
+            if (interact) {
+              const tipRaw = indexTip(interact.landmarks);
+              interactTip = { x: 1 - tipRaw.x, y: tipRaw.y };
+              pinching = isPinching(interact.landmarks);
+            }
+          }
+
           const requiredMs = hit
             ? dwellMsFor(hit.id, hudState)
             : HUD_DWELL_DEFAULT_MS;

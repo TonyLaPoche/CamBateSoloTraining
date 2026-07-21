@@ -64,6 +64,34 @@ export function pickPreferredHand<T extends { handedness: HandSide }>(
   return match ?? hands[0]!;
 }
 
+/** L’autre main (HUD pendant que la dominante fap). */
+export function pickOtherHand<T extends { handedness: HandSide }>(
+  hands: T[],
+  mode: HandDominance,
+): T | null {
+  if (hands.length === 0) return null;
+  if (hands.length === 1) return hands[0]!;
+  const pref = pickPreferredHand(hands, mode);
+  return hands.find((h) => h !== pref) ?? hands[0]!;
+}
+
+/** Mains ordonnées : non-dominante d’abord (visée HUD). */
+export function orderHandsForHud<T extends { handedness: HandSide }>(
+  hands: T[],
+  mode: HandDominance,
+): T[] {
+  if (hands.length <= 1) return hands;
+  const other = pickOtherHand(hands, mode);
+  const pref = pickPreferredHand(hands, mode);
+  const out: T[] = [];
+  if (other) out.push(other);
+  if (pref && pref !== other) out.push(pref);
+  for (const h of hands) {
+    if (!out.includes(h)) out.push(h);
+  }
+  return out;
+}
+
 /** Flip X pour aligner overlays sur une vidéo CSS scaleX(-1). */
 export function mirrorX(x: number): number {
   return 1 - x;
