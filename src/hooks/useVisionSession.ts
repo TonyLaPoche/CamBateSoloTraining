@@ -560,11 +560,17 @@ export function useVisionSession({
           const flipLm = (lms: NormalizedLandmark[]) =>
             lms.map((p) => ({ ...p, x: 1 - p.x, y: p.y, z: p.z }));
 
-          if (ov.showFace && faceLm && !profile.liteDraw) {
+          // Pendant le REC : pas de points trigger mains / visage / zones (restent hors vidéo)
+          const hideTriggers = sess.recording;
+          const drawFace = ov.showFace && !hideTriggers;
+          const drawZones = Boolean(ov.showZones) && !hideTriggers;
+          const drawHands = ov.showHands && !hideTriggers;
+
+          if (drawFace && faceLm && !profile.liteDraw) {
             drawFaceMask(ctx, flipLm(faceLm), w, h, expr);
           }
 
-          if (ov.showZones && zones) {
+          if (drawZones && zones) {
             drawTriggerZones(ctx, zones, w, h, true);
           }
 
@@ -666,7 +672,7 @@ export function useVisionSession({
             );
           }
 
-          if (ov.showHands) {
+          if (drawHands) {
             for (const hand of tracked) {
               const tip = indexTip(hand.landmarks);
               const mcp = indexMetacarpalPoint(hand.landmarks);
@@ -708,6 +714,7 @@ export function useVisionSession({
 
           if (
             interactTip &&
+            !hideTriggers &&
             (ov.showHands || ov.showHud) &&
             !profile.liteDraw
           ) {

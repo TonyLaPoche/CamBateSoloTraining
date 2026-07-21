@@ -1,16 +1,23 @@
 import { useCallback, useRef, useState } from "react";
 
+export type RecHudSnapshot = {
+  pumps: number;
+  score: number;
+  combo: number;
+  multiplier: number;
+  fapping: boolean;
+  cumActive: boolean;
+  /** Countdown centre : "3", "LET'S FAP!", etc. */
+  centerLabel: string | null;
+  /** Annonce milestone / toast */
+  toast: string | null;
+  toastEyebrow: string;
+};
+
 type Options = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   overlayRef: React.RefObject<HTMLCanvasElement | null>;
-  getHud: () => {
-    pumps: number;
-    score: number;
-    combo: number;
-    multiplier: number;
-    fapping: boolean;
-    cumActive: boolean;
-  };
+  getHud: () => RecHudSnapshot;
 };
 
 function pickMimeType(): string | undefined {
@@ -21,6 +28,84 @@ function pickMimeType(): string | undefined {
     "video/mp4",
   ];
   return candidates.find((t) => MediaRecorder.isTypeSupported(t));
+}
+
+function drawCenterAnnouncement(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  label: string,
+) {
+  const isBigWord = label.length > 2;
+  const boxW = Math.min(w * 0.72, 520);
+  const boxH = isBigWord ? Math.min(h * 0.28, 160) : Math.min(h * 0.32, 200);
+  const x = (w - boxW) / 2;
+  const y = (h - boxH) / 2;
+
+  ctx.fillStyle = "rgba(0,0,0,0.72)";
+  ctx.strokeStyle = "rgba(251,255,77,0.35)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, boxW, boxH, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#FBFF4D";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const fontSize = isBigWord
+    ? Math.max(28, Math.min(52, boxW / (label.length * 0.55)))
+    : Math.max(64, Math.min(120, boxH * 0.55));
+  ctx.font = `700 ${fontSize}px Mazzard, system-ui, sans-serif`;
+  ctx.fillText(label, w / 2, h / 2);
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+}
+
+function drawMilestoneToast(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  message: string,
+  eyebrow: string,
+) {
+  const boxW = Math.min(w * 0.7, 420);
+  const boxH = Math.min(h * 0.16, 100);
+  const x = (w - boxW) / 2;
+  const y = h * 0.28;
+
+  ctx.fillStyle = "rgba(0,0,0,0.72)";
+  ctx.strokeStyle = "rgba(251,255,77,0.4)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, boxW, boxH, 16);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#AF9EFF";
+  ctx.font = "600 12px Mazzard, system-ui, sans-serif";
+  ctx.fillText(eyebrow.toUpperCase(), w / 2, y + boxH * 0.32);
+  ctx.fillStyle = "#FBFF4D";
+  ctx.font = "700 28px Mazzard, system-ui, sans-serif";
+  ctx.fillText(message, w / 2, y + boxH * 0.68);
+  ctx.textAlign = "start";
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
 }
 
 export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
@@ -67,6 +152,7 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
       ctx.drawImage(video, 0, 0, w, h);
       ctx.restore();
 
+      // Overlay = HUD cam uniquement pendant le rec (mains/visage masqués côté vision)
       const overlay = overlayRef.current;
       if (overlay && overlay.width > 0) {
         ctx.drawImage(overlay, 0, 0, w, h);
@@ -98,6 +184,14 @@ export function useSessionRecorder({ videoRef, overlayRef, getHud }: Options) {
       ctx.fillStyle = "#FFFFFF";
       ctx.font = "600 14px Mazzard, system-ui, sans-serif";
       ctx.fillText(pausedRef.current ? "PAUSE" : "REC", w - 110, 45);
+
+      // Annonces à l’écran (countdown + milestones) — visibles à la relecture
+      if (hud.toast) {
+        drawMilestoneToast(ctx, w, h, hud.toast, hud.toastEyebrow);
+      }
+      if (hud.centerLabel) {
+        drawCenterAnnouncement(ctx, w, h, hud.centerLabel);
+      }
 
       composeRafRef.current = requestAnimationFrame(paint);
     };

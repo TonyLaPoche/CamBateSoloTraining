@@ -109,6 +109,9 @@ export default function App() {
     multiplier: 1,
     fapping: false,
     cumActive: false,
+    centerLabel: null as string | null,
+    toast: null as string | null,
+    toastEyebrow: "Milestone",
   });
 
   const camera = useCamera(videoRef);
@@ -529,8 +532,21 @@ export default function App() {
       multiplier: bonuses.total * (cumActive ? 3 : 1),
       fapping,
       cumActive,
+      centerLabel,
+      toast,
+      toastEyebrow: t("toast.milestone"),
     };
-  }, [pumps, score, combo, bonuses.total, fapping, cumActive]);
+  }, [
+    pumps,
+    score,
+    combo,
+    bonuses.total,
+    fapping,
+    cumActive,
+    centerLabel,
+    toast,
+    t,
+  ]);
 
   const statusTitle = camera.error
     ? camera.error
